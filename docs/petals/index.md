@@ -12,8 +12,8 @@ atomically.
 ## What Petal Authors Write
 
 Petal authors should start in their own Rust project, not inside the Bloom
-monorepo. Add the Bloom petal SDK crates as dependencies, build your crate to
-wasm, and use the Bloom CLI to deploy the resulting `.wasm`.
+monorepo. Today, depend on the Bloom repo by git URL, build your crate to wasm,
+and use the Bloom CLI to deploy the resulting `.wasm`.
 
 Petal authors write Rust crates that depend on the Bloom runtime and macros:
 

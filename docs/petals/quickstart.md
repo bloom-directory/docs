@@ -8,7 +8,7 @@ once the mechanics are familiar.
 ## Prerequisites
 
 You do not need to clone the Bloom monorepo to write a petal. A petal is just a
-Rust library crate that depends on the Bloom petal SDK crates.
+Rust library crate that depends on the Bloom petal crates.
 
 Install the wasm target:
 
@@ -20,12 +20,8 @@ You also need a Bloom CLI binary for deploys and PTB calls. The CLI does not
 need to be in the same workspace as your petal. Public installation packaging is
 still TBD; for now, use whichever Bloom binary your network/operator provides.
 
-!!! note "Until the SDK crates are published"
-
-    The intended public flow is `cargo add bloom-resource bloom-resource-macros
-    bloom-objects`. If the crates are not on crates.io yet, use git dependencies
-    from the Bloom repo instead. You should still create your petal in its own
-    repo.
+The Bloom petal crates are not published as standalone crates yet. Use git
+dependencies for now. You should still create your petal in its own repo.
 
 ## Minimal Petal
 
@@ -34,7 +30,6 @@ Create a petal crate with dependencies on the macros and runtime:
 ```sh
 cargo new bloom-petal-hello --lib
 cd bloom-petal-hello
-cargo add bloom-resource bloom-resource-macros
 ```
 
 Your manifest should look like this:
@@ -48,14 +43,6 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[dependencies]
-bloom-resource = "0.1"
-bloom-resource-macros = "0.1"
-```
-
-If the crates are not published yet, use git dependencies:
-
-```toml
 [dependencies]
 bloom-resource = { git = "https://github.com/bloom-directory/bloom.git" }
 bloom-resource-macros = { git = "https://github.com/bloom-directory/bloom.git" }
@@ -234,12 +221,6 @@ pub mod counter {
 ```
 
 Add `bloom-objects` for this example:
-
-```sh
-cargo add bloom-objects
-```
-
-or, temporarily:
 
 ```toml
 bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }

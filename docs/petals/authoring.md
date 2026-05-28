@@ -12,13 +12,14 @@ Start with:
 ```sh
 cargo new my-petal --lib
 cd my-petal
-cargo add bloom-resource bloom-resource-macros
 ```
 
-For object-heavy petals, also add:
+Add the Bloom petal crates by git URL:
 
-```sh
-cargo add bloom-objects
+```toml title="Cargo.toml"
+[dependencies]
+bloom-resource = { git = "https://github.com/bloom-directory/bloom.git" }
+bloom-resource-macros = { git = "https://github.com/bloom-directory/bloom.git" }
 ```
 
 Set the library crate types:
@@ -37,16 +38,11 @@ cargo build --target wasm32-unknown-unknown --release
 The Bloom CLI and chain are deployment tools. They do not need to be workspace
 siblings of your petal crate.
 
-!!! note "Temporary git dependency fallback"
+For object-heavy petals, also add:
 
-    If the Bloom SDK crates are not published yet, depend on the Bloom repo by
-    git URL instead of by version:
-
-    ```toml
-    bloom-resource = { git = "https://github.com/bloom-directory/bloom.git" }
-    bloom-resource-macros = { git = "https://github.com/bloom-directory/bloom.git" }
-    bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
-    ```
+```toml
+bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
+```
 
 ## `#[bloom::petal]`
 
