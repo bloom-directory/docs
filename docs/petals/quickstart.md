@@ -16,12 +16,9 @@ Install the wasm target:
 rustup target add wasm32-unknown-unknown
 ```
 
-Install the Bloom CLI separately. The CLI is used to deploy and call petals; it
-does not need to be in the same workspace as your petal.
-
-```sh
-cargo install bloom-cli
-```
+You also need a Bloom CLI binary for deploys and PTB calls. The CLI does not
+need to be in the same workspace as your petal. Public installation packaging is
+still TBD; for now, use whichever Bloom binary your network/operator provides.
 
 !!! note "Until the SDK crates are published"
 
