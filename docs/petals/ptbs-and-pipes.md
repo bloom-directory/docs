@@ -91,3 +91,154 @@ The executor runs the PTB over a state snapshot. If any command fails, all
 writes are discarded. This is the core property that makes multi-step petal
 composition useful.
 
+## Read-Only View Calls
+
+For Ethereum-style reads, nodes expose `chain_view_call`. A view call executes
+one or more `#[view]` petal functions against a committed snapshot, meters fuel,
+returns typed JSON plus the raw manifest-declared return slots, and never
+commits state.
+
+Only functions marked `#[view]` in the petal manifest can be called this way.
+The chain verifies view purity at deploy time by checking that the view export
+cannot reach mutating host imports. At call time, the node validates the call in
+read-only mode: no gas coin is required, object arguments are forced to
+read-only borrows, and any produced writes, deletes, ownership changes, or
+publish events reject the result.
+
+### CLI Form
+
+```sh
+bloom chain view \
+  --path /bloom/examples/hello \
+  --function add \
+  --arg 2 \
+  --arg 40
+```
+
+For historical reads, add `--at-block <height>`. The height selector exists only
+on the standalone view path; committed PTBs always execute against the current
+block state.
+
+Object reads use object JSON. If `version` is omitted, the node fills it from the
+selected snapshot:
+
+```sh
+bloom chain view \
+  --path /bloom/examples/counter \
+  --function value \
+  --arg '{"kind":"object","id":"<counter-object-id-hex>"}'
+```
+
+Generic functions take one `--type-arg` per type parameter. The CLI accepts
+canonical TypeTag hex, and the RPC form also accepts TypeTag JSON:
+
+```sh
+bloom chain view \
+  --path /bloom/core/fungible \
+  --function value \
+  --type-arg '<token-type-tag-hex>' \
+  --arg '{"kind":"object","id":"<coin-object-id-hex>"}'
+```
+
+### RPC Form
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "chain_view_call",
+  "params": {
+    "path": "/bloom/examples/counter",
+    "function": "value",
+    "args": [
+      { "kind": "object", "id": "<counter-object-id-hex>" }
+    ],
+    "fuel_limit": 1000000
+  }
+}
+```
+
+The same call can be written with a `commands` array. Use this form when a view
+needs outputs from earlier view commands:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "chain_view_call",
+  "params": {
+    "commands": [
+      {
+        "path": "/bloom/examples/hello",
+        "function": "add",
+        "args": [2, 40]
+      },
+      {
+        "path": "/bloom/examples/hello",
+        "function": "add",
+        "args": [{ "use": { "cmd": 0, "ret": 0 } }, 8]
+      }
+    ]
+  }
+}
+```
+
+### DEX Examples
+
+For view-marked DEX entry points, quote and reserve reads use the same surface.
+
+Pure constant-product math can be called with ordinary JSON numbers:
+
+```sh
+bloom chain view \
+  --path /bloom/dex/strategy/cpmm \
+  --function cpmm_quote_preview \
+  --arg 1000 \
+  --arg 1000 \
+  --arg 100 \
+  --arg 30
+```
+
+Pool reserves are object reads:
+
+```sh
+bloom chain view \
+  --path /bloom/dex/pool \
+  --function reserves \
+  --arg '{"kind":"object","id":"<pool-object-id-hex>"}'
+```
+
+Router quotes are generic over the token route:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "chain_view_call",
+  "params": {
+    "path": "/bloom/dex/router",
+    "function": "quote_1hop",
+    "type_args": [
+      {
+        "concrete": {
+          "petal_hash": "<token-a-petal-hash>",
+          "type_name": "TokenA",
+          "type_args": []
+        }
+      },
+      {
+        "concrete": {
+          "petal_hash": "<token-b-petal-hash>",
+          "type_name": "TokenB",
+          "type_args": []
+        }
+      }
+    ],
+    "args": [
+      { "kind": "object", "id": "<pool-object-id-hex>" },
+      "1000000000000000000"
+    ],
+    "at_block": 12345
+  }
+}
+```

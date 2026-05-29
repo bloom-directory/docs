@@ -68,8 +68,32 @@ The macro records:
 - framework version;
 - object declarations;
 - capability declarations;
-- public function names, arguments, returns, signers, and required caps;
+- public function names, arguments, returns, view flags, signers, and required caps;
 - invariants.
+
+## `#[view]`
+
+Add `#[view]` to a public petal function that reads state but does not create,
+mutate, transfer, freeze, share, or delete objects.
+
+```rust
+#[bloom::petal(path = "/bloom/examples/math", version = "0.1.0")]
+pub mod math {
+    #[view]
+    pub fn add(a: u128, b: u128) -> u128 {
+        a + b
+    }
+}
+```
+
+View functions are discoverable in the manifest and can be called through
+`bloom chain view` or the `chain_view_call` RPC method. Chain-mode deployment
+statically checks each view export's call graph and rejects a view that can
+reach mutating host imports. The read path also runs with read-only validation:
+object arguments are borrowed read-only, no gas coin is required, and any
+attempted state effect rejects the result.
+
+`#[view]` is a bare marker and does not accept arguments.
 
 ## `#[bloom::object]`
 

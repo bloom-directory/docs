@@ -57,10 +57,12 @@ use bloom_resource_macros as bloom;
 
 #[bloom::petal(path = "/bloom/examples/hello", version = "0.1.0")]
 pub mod hello {
+    #[view]
     pub fn version() -> u32 {
         1
     }
 
+    #[view]
     pub fn add(a: u128, b: u128) -> u128 {
         a + b
     }
@@ -72,7 +74,7 @@ That is enough to produce:
 - `__petal_version`;
 - `__petal_add`;
 - a `bloom_petal_manifest_v0` custom section declaring the path,
-  version, arguments, and returns.
+  version, arguments, returns, and view flags.
 
 Build it:
 
@@ -102,8 +104,8 @@ endpoint paths are:
 /bloom/examples/hello/add
 ```
 
-The real repo has this same minimal pattern in the CPMM strategy petal and a
-generic version in the identity petal.
+The real repo has the same module/export pattern in the CPMM strategy petal and
+a generic version in the identity petal.
 
 ## Optional: Generic Dispatch
 
@@ -139,6 +141,36 @@ bloom pipe \
 
 Arguments are positional and encoded from the manifest signature. A literal
 `2` in a `u128` slot becomes canonical big-endian `u128` bytes.
+
+## Calling View Functions
+
+Functions marked with `#[view]` can be called without building or signing a
+transaction:
+
+```sh
+bloom chain view \
+  --path /bloom/examples/hello \
+  --function add \
+  --arg 2 \
+  --arg 40
+```
+
+The node decodes `--arg` values against the manifest, runs the function against
+the latest committed snapshot, and returns typed JSON plus raw return slots. A
+`u128` return appears as a decimal string. Abridged response:
+
+```json
+{
+  "commands": [
+    {
+      "path": "/bloom/examples/hello",
+      "function": "add",
+      "returns": ["42"],
+      "returns_raw": ["0000000000000000000000000000002a"]
+    }
+  ]
+}
+```
 
 ## A Slightly More Involved Petal: Counter
 
@@ -181,6 +213,7 @@ pub mod counter {
         next
     }
 
+    #[view]
     pub fn value(counter: &Resource<Counter>) -> u128 {
         read_value(counter.handle())
     }
@@ -237,6 +270,20 @@ bloom pipe \
 ```
 
 If any command fails, the whole PTB reverts.
+
+After the counter object exists, its read-only function can be called with the
+object id:
+
+```sh
+bloom chain view \
+  --path /bloom/examples/counter \
+  --function value \
+  --arg '{"kind":"object","id":"<counter-object-id-hex>"}'
+```
+
+Add `"version": <expected-object-version>` inside the object JSON to pin the
+object version explicitly. If omitted, the node reads the current object version
+from the selected snapshot.
 
 ## Next
 
