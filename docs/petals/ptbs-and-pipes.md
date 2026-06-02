@@ -25,7 +25,9 @@ Arguments can be:
 - type arguments.
 
 The validator checks that each command matches the target function declared in
-the petal manifest.
+the petal manifest. Constant arguments and return slots are canonical Bloom
+values decoded against the manifest-declared `TypeTag`; object arguments are
+object IDs plus access metadata.
 
 ## Endpoint Paths
 
@@ -97,6 +99,13 @@ For Ethereum-style reads, nodes expose `chain_view_call`. A view call executes
 one or more `#[view]` petal functions against a committed snapshot, meters fuel,
 returns typed JSON plus the raw manifest-declared return slots, and never
 commits state.
+
+Typed JSON is a projection of the same canonical value codec used by PTBs and
+object payloads. For example, `u64` and `u128` are decimal strings, smaller
+integers are JSON numbers, 32-byte values and `bytes` are lowercase hex strings,
+vectors and sets are arrays, maps are arrays of `[key, value]` pairs, `Option`
+uses `null` for `None`, and `Result` uses `{ "Ok": value }` or
+`{ "Err": value }`.
 
 Only functions marked `#[view]` in the petal manifest can be called this way.
 The chain verifies view purity at deploy time by checking that the view export

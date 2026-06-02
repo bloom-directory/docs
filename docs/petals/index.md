@@ -18,9 +18,10 @@ and use the Bloom CLI to deploy the resulting `.wasm`.
 Petal authors write Rust crates that depend on the Bloom runtime and macros:
 
 - `bloom-resource`: guest-side runtime types such as `Resource<T>`, `Coin<T>`,
-  `Capability<T>`, `Signer`, `UID`, and host wrappers.
+  `Capability<T>`, `Signer`, `UID`, `BloomType`, and host wrappers.
 - `bloom-resource-macros`: `#[bloom::petal]`, `#[bloom::object]`,
-  `#[bloom::capability]`, and `#[bloom::invariant]`.
+  `#[bloom::capability]`, `#[derive(BloomType)]`, and
+  `#[bloom::invariant]`.
 - `bloom-objects`: object IDs, owners, access modes, and type tags.
 
 Every public function inside a `#[bloom::petal]` module becomes a callable
@@ -38,4 +39,6 @@ matching wasm export.
 
 At call time, the PTB validator loads the manifest, checks argument kinds and
 object access modes, then the executor runs the wasm under a deterministic
-chain VM.
+chain VM. Constants, returns, and object payloads use Bloom's canonical,
+manifest-driven value codec; old ad hoc petal payload layouts are not the
+supported authoring model.
