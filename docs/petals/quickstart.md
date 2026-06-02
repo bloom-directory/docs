@@ -113,19 +113,21 @@ Generic petal functions emit one wasm export and receive concrete type
 arguments at call time. This mirrors the existing identity example:
 
 ```rust
-use bloom_resource::Coin;
+use bloom_resource::{Coin, TypeTag};
 
 pub fn identity<T>(c: Coin<T>) -> Coin<T> {
     c
 }
 
-pub fn echo_tag<T>() -> u128 {
-    Coin::<T>::type_tag(0)
-        .and_then(|tag| tag.encode_canonical().ok())
-        .map(|bytes| bytes.len() as u128)
-        .unwrap_or(0)
+#[view]
+pub fn echo_tag<T>() -> TypeTag {
+    Coin::<T>::type_tag(0).expect("type arg T must be bound")
 }
 ```
+
+`TypeTag` is a normal Bloom value type. Returning it from a view function uses
+the same canonical value codec as other constants and returns; the JSON view
+response projects it as a structured type-tag object.
 
 ## Calling With `bloom pipe`
 

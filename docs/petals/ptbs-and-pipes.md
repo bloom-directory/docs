@@ -139,14 +139,27 @@ bloom chain view \
 ```
 
 Generic functions take one `--type-arg` per type parameter. The CLI accepts
-canonical TypeTag hex, and the RPC form also accepts TypeTag JSON:
+canonical TypeTag hex, labels such as `u64` or `vector<u64>`, and structured
+TypeTag JSON:
 
 ```sh
 bloom chain view \
   --path /bloom/core/fungible \
   --function value \
-  --type-arg '<token-type-tag-hex>' \
+  --type-arg 'Token@<token-petal-hash>' \
   --arg '{"kind":"object","id":"<coin-object-id-hex>"}'
+```
+
+The same type argument can be written in RPC JSON form:
+
+```json
+{
+  "concrete": {
+    "petal_hash": "<token-petal-hash>",
+    "type_name": "Token",
+    "type_args": []
+  }
+}
 ```
 
 ### RPC Form

@@ -38,7 +38,10 @@ cargo build --target wasm32-unknown-unknown --release
 The Bloom CLI and chain are deployment tools. They do not need to be workspace
 siblings of your petal crate.
 
-For object-heavy petals, also add:
+Most petals do not need to depend on `bloom-objects` directly because
+`bloom-resource` re-exports the author-facing `TypeTag` runtime type. Add
+`bloom-objects` only when a petal or host-side test manually names lower-level
+object-model types:
 
 ```toml
 bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
