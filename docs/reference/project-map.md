@@ -10,12 +10,15 @@ them.
 | Capability macro | `crates/bloom-resource-macros/src/capability.rs` |
 | Guest runtime | `crates/bloom-resource/src/lib.rs` |
 | Host wrappers | `crates/bloom-resource/src/host.rs` |
-| Args/return ABI | `crates/bloom-resource/src/abi.rs` |
+| Guest `BloomType` runtime | `crates/bloom-resource/src/resource.rs` |
+| Canonical value codec | `crates/bloom-value/src/lib.rs` |
+| Args/return ABI envelope | `crates/bloom-resource/src/abi.rs` |
 | Manifest schema | `crates/bloom-petal-manifest/src/types.rs` |
 | Manifest extraction | `crates/bloom-petal-manifest/src/extract.rs` |
 | Object model | `crates/bloom-objects/src/` |
 | PTB wire types | `crates/bloom-script/src/types.rs` |
 | PTB validation | `crates/bloom-script/src/validator.rs` |
+| Manifest-driven value validation | `crates/bloom-script/src/value_validation.rs` |
 | PTB execution | `crates/bloom-script/src/executor.rs` |
 | Pipe builder | `crates/bloom-ptb-builder/src/` |
 | CLI pipe | `crates/bloom/src/commands/pipe.rs` |
@@ -26,4 +29,3 @@ them.
 | Standard fungible petal | `crates/bloom-petal-fungible/src/lib.rs` |
 | Capability example | `examples/petal-cap/src/lib.rs` |
 | DEX example | `examples/petal-dex/` |
-

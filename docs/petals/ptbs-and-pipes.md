@@ -25,7 +25,9 @@ Arguments can be:
 - type arguments.
 
 The validator checks that each command matches the target function declared in
-the petal manifest.
+the petal manifest. Constant arguments and return slots are canonical Bloom
+values decoded against the manifest-declared `TypeTag`; object arguments are
+object IDs plus access metadata.
 
 ## Endpoint Paths
 
@@ -98,6 +100,13 @@ one or more `#[view]` petal functions against a committed snapshot, meters fuel,
 returns typed JSON plus the raw manifest-declared return slots, and never
 commits state.
 
+Typed JSON is a projection of the same canonical value codec used by PTBs and
+object payloads. For example, `u64` and `u128` are decimal strings, smaller
+integers are JSON numbers, 32-byte values and `bytes` are lowercase hex strings,
+vectors and sets are arrays, maps are arrays of `[key, value]` pairs, `Option`
+uses `null` for `None`, and `Result` uses `{ "Ok": value }` or
+`{ "Err": value }`.
+
 Only functions marked `#[view]` in the petal manifest can be called this way.
 The chain verifies view purity at deploy time by checking that the view export
 cannot reach mutating host imports. At call time, the node validates the call in
@@ -130,14 +139,27 @@ bloom chain view \
 ```
 
 Generic functions take one `--type-arg` per type parameter. The CLI accepts
-canonical TypeTag hex, and the RPC form also accepts TypeTag JSON:
+canonical TypeTag hex, labels such as `u64` or `vector<u64>`, and structured
+TypeTag JSON:
 
 ```sh
 bloom chain view \
   --path /bloom/core/fungible \
   --function value \
-  --type-arg '<token-type-tag-hex>' \
+  --type-arg 'Token@<token-petal-hash>' \
   --arg '{"kind":"object","id":"<coin-object-id-hex>"}'
+```
+
+The same type argument can be written in RPC JSON form:
+
+```json
+{
+  "concrete": {
+    "petal_hash": "<token-petal-hash>",
+    "type_name": "Token",
+    "type_args": []
+  }
+}
 ```
 
 ### RPC Form

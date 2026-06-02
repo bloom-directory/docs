@@ -113,19 +113,21 @@ Generic petal functions emit one wasm export and receive concrete type
 arguments at call time. This mirrors the existing identity example:
 
 ```rust
-use bloom_resource::Coin;
+use bloom_resource::{Coin, TypeTag};
 
 pub fn identity<T>(c: Coin<T>) -> Coin<T> {
     c
 }
 
-pub fn echo_tag<T>() -> u128 {
-    Coin::<T>::type_tag(0)
-        .and_then(|tag| tag.encode_canonical().ok())
-        .map(|bytes| bytes.len() as u128)
-        .unwrap_or(0)
+#[view]
+pub fn echo_tag<T>() -> TypeTag {
+    Coin::<T>::type_tag(0).expect("type arg T must be bound")
 }
 ```
+
+`TypeTag` is a normal Bloom value type. Returning it from a view function uses
+the same canonical value codec as other constants and returns; the JSON view
+response projects it as a structured type-tag object.
 
 ## Calling With `bloom pipe`
 
@@ -139,8 +141,9 @@ bloom pipe \
   --gas-payer <coin-object-id-hex>
 ```
 
-Arguments are positional and encoded from the manifest signature. A literal
-`2` in a `u128` slot becomes canonical big-endian `u128` bytes.
+Arguments are positional and encoded from the manifest signature with the
+canonical Bloom value codec. A literal `2` in a `u128` slot becomes canonical
+big-endian `u128` bytes.
 
 ## Calling View Functions
 
@@ -188,8 +191,7 @@ use bloom_resource_macros as bloom;
 
 #[bloom::petal(path = "/bloom/examples/counter", version = "0.1.0")]
 pub mod counter {
-    use bloom_objects::{ObjectId, TypeTag};
-    use bloom_resource::{Resource, RuntimeHandle, UID, abi::RetWriter, host};
+    use bloom_resource::{BloomType, Resource, RuntimeHandle, UID, host};
     use bloom_resource_macros::object;
 
     #[object(abilities = "key, store")]
@@ -199,18 +201,24 @@ pub mod counter {
     }
 
     pub fn new(initial: u128) -> Resource<Counter> {
-        let handle = host::object_create(&counter_type_tag(), &counter_payload(initial))
+        let payload = Counter {
+            id: UID::from_bytes([0u8; 32]),
+            value: initial,
+        }
+        .canonical_encode();
+        let handle = host::object_create(&Counter::type_tag(), &payload)
             .expect("counter create failed");
         Resource::from_handle(handle)
     }
 
     pub fn increment(counter: &mut Resource<Counter>, by: u128) -> u128 {
         let bytes = host::object_read(counter.handle()).expect("counter read failed");
-        let current = decode_value(&bytes);
-        let next = current.checked_add(by).expect("counter overflow");
-        host::object_mutate(counter.handle(), &rewrite_value(&bytes, next))
+        let mut current = Counter::canonical_decode(&bytes)
+            .expect("counter payload malformed");
+        current.value = current.value.checked_add(by).expect("counter overflow");
+        host::object_mutate(counter.handle(), &current.canonical_encode())
             .expect("counter mutate failed");
-        next
+        current.value
     }
 
     #[view]
@@ -218,45 +226,13 @@ pub mod counter {
         read_value(counter.handle())
     }
 
-    fn counter_type_tag() -> TypeTag {
-        TypeTag::Concrete {
-            petal_hash: [0u8; 32],
-            type_name: "Counter".to_string(),
-            type_args: vec![],
-        }
-    }
-
-    fn counter_payload(value: u128) -> Vec<u8> {
-        let mut w = RetWriter::with_capacity(48);
-        w.write_object_id(&ObjectId([0u8; 32]));
-        w.write_u128(value);
-        w.finish()
-    }
-
     fn read_value(handle: RuntimeHandle) -> u128 {
         let bytes = host::object_read(handle).expect("counter read failed");
-        decode_value(&bytes)
-    }
-
-    fn decode_value(bytes: &[u8]) -> u128 {
-        let mut raw = [0u8; 16];
-        raw.copy_from_slice(&bytes[32..48]);
-        u128::from_be_bytes(raw)
-    }
-
-    fn rewrite_value(existing: &[u8], value: u128) -> Vec<u8> {
-        let mut out = Vec::with_capacity(48);
-        out.extend_from_slice(&existing[..32]);
-        out.extend_from_slice(&value.to_be_bytes());
-        out
+        Counter::canonical_decode(&bytes)
+            .expect("counter payload malformed")
+            .value
     }
 }
-```
-
-Add `bloom-objects` for this example:
-
-```toml
-bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
 ```
 
 The PTB model makes this useful because one command can create a `Counter` and a

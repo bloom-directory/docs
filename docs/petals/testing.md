@@ -4,18 +4,32 @@ Petal testing usually happens at three levels.
 
 ## 1. Host-Side Unit Tests
 
-Keep payload codecs and math in normal Rust helpers. Test them without wasm.
+Keep math and host-operation helpers in normal Rust modules. Test them without
+wasm, but use the canonical `BloomType` codec for payload bytes.
 
 The standard fungible petal uses this shape:
 
-```text
+```rust
 pub mod ops {
-  pub fn coin_payload(value: u128) -> Vec<u8> { ... }
-  pub fn decode_coin_value(bytes: &[u8]) -> Result<u128, PetalError> { ... }
+    use bloom_resource::{BloomType, Erased, PetalError};
+
+    pub fn coin_payload(value: u128) -> Vec<u8> {
+        crate::fungible::Coin::<Erased> { value, _phantom: Default::default() }
+            .canonical_encode()
+    }
+
+    pub fn decode_coin_value(bytes: &[u8]) -> Result<u128, PetalError> {
+        crate::fungible::Coin::<Erased>::canonical_decode(bytes)
+            .map(|coin| coin.value)
+            .map_err(|_| PetalError::InvalidArgs)
+    }
 }
 ```
 
-This gives fast tests for most bugs.
+Those helpers construct the declared Rust type and call
+`canonical_encode()` / `canonical_decode()`; they do not hand-pack fields or
+read fixed offsets. This gives fast tests for most bugs while keeping the
+payload layout identical to the manifest-driven chain codec.
 
 ## 2. PTB Harness Tests
 
@@ -39,6 +53,7 @@ exports. This catches issues that pure host-side tests cannot catch:
 - missing or malformed manifest custom sections;
 - unsupported wasm imports;
 - ABI mismatch between manifest and wasm export;
+- canonical value codec mismatch between guest code and manifest validation;
 - fuel or memory failures.
 
 Example command:
@@ -54,9 +69,11 @@ integration environment.
 
 - Manifest contains the expected path and public functions.
 - Every public function has the expected argument and return shape.
-- Object payload codecs round-trip.
+- Object, capability, and `BloomType` payloads round-trip through
+  `canonical_encode()` / `canonical_decode()`.
+- Malformed object payloads are rejected by `object.create` and
+  `object.mutate`.
 - Cap-gated functions reject missing or mismatched caps.
 - Mutable functions update only the intended objects.
 - Consuming functions cannot be double-spent in one PTB.
 - Reverts leave state unchanged.
-

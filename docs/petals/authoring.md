@@ -38,7 +38,10 @@ cargo build --target wasm32-unknown-unknown --release
 The Bloom CLI and chain are deployment tools. They do not need to be workspace
 siblings of your petal crate.
 
-For object-heavy petals, also add:
+Most petals do not need to depend on `bloom-objects` directly because
+`bloom-resource` re-exports the author-facing `TypeTag` runtime type. Add
+`bloom-objects` only when a petal or host-side test manually names lower-level
+object-model types:
 
 ```toml
 bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
@@ -68,6 +71,7 @@ The macro records:
 - framework version;
 - object declarations;
 - capability declarations;
+- plain `BloomType` data structs and enums;
 - public function names, arguments, returns, view flags, signers, and required caps;
 - invariants.
 
@@ -118,9 +122,14 @@ Recognized forms:
 #[bloom::object(phantom = "T, U")]
 ```
 
+The macro also emits `BloomType` encoding and decoding for the object payload.
+Petal code should create and mutate object bytes with
+`T::canonical_encode()` / `T::canonical_decode()` instead of hand-written
+payload codecs.
+
 Plain generic payload fields are rejected unless they are phantom parameters or
 wrapped in Bloom runtime resource types. This keeps object payload layout
-explicit.
+explicit and manifest-resolvable.
 
 ## `#[bloom::capability]`
 
@@ -135,7 +144,54 @@ pub struct MintCap<T> {
 ```
 
 The macro is sugar for a key/store/copy object declaration plus the runtime
-marker trait. A function that takes `&Capability<MintCap<T>>` is cap-gated.
+marker trait. It participates in the same canonical payload codec as objects. A
+function that takes `&Capability<MintCap<T>>` is cap-gated.
+
+## `#[derive(BloomType)]`
+
+Use `BloomType` for plain value structs and enums that are passed as constants,
+stored inside object fields, or used inside collections.
+
+```rust
+#[derive(Clone, Debug, PartialEq, Eq, bloom::BloomType)]
+pub struct Quote {
+    pub amount_in: u128,
+    pub amount_out: u128,
+    pub route: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, bloom::BloomType)]
+pub enum Status {
+    Empty,
+    Filled { at_block: u64 },
+    Error(String),
+}
+```
+
+The derive emits a `BloomType` implementation and causes the petal manifest to
+record the struct fields or enum variants. `#[bloom::object]` and
+`#[bloom::capability]` build on the same encoding machinery.
+
+## Built-In Value Types
+
+The canonical type system has built-ins for scalars, bytes, text, collections,
+tuples, and common enums. In Rust, the usual spellings are:
+
+| Rust shape | Bloom type |
+| --- | --- |
+| `bool`, `u8`, `u16`, `u32`, `u64`, `u128` | same scalar |
+| `[u8; 32]`, `ObjectId`, `Hash32`, `UID` | 32-byte scalar |
+| `String` | `String` |
+| `bloom_resource::Bytes` | `bytes` |
+| `Vec<T>` | `vector<T>` |
+| `(A, B, ...)` | `tuple<A, B, ...>` |
+| `Option<T>` | `Option<T>` |
+| `Result<T, E>` | `Result<T, E>` |
+| `BTreeSet<T>` | `set<T>` |
+| `BTreeMap<K, V>` | `map<K, V>` |
+
+`Vec<u8>` is a `vector<u8>`. Use `bloom_resource::Bytes` when the schema should
+be the distinct `bytes` type.
 
 ## Function Arguments
 
@@ -143,7 +199,7 @@ Common argument types:
 
 | Rust shape | PTB arg kind |
 | --- | --- |
-| `u8`, `u64`, `u128`, `bool`, bytes, strings | constant |
+| `BloomType` values, built-in scalars, bytes, strings | constant |
 | `&Signer` | signer reference |
 | `&Resource<T>` | read-only object |
 | `&mut Resource<T>` | mutable object |
@@ -153,6 +209,10 @@ Common argument types:
 
 Generic functions are called with runtime `TypeTag` values. The macro emits one
 real export and binds the concrete type arguments for the duration of the call.
+Petal-defined self types use a zero hash placeholder in macro-emitted source;
+the chain resolves that placeholder to the defining petal's content hash.
+Built-in types use Bloom's reserved built-in hash and do not use the self
+placeholder.
 
 ## Error Style
 
@@ -163,4 +223,5 @@ entry-point boundary. A panic or trap becomes a petal abort and reverts the PTB.
 For testability, production petals often split logic into:
 
 - a public `#[bloom::petal]` function with the simple ABI;
-- an internal `ops` module with `Result`-returning helpers and payload codecs.
+- an internal `ops` module with `Result`-returning helpers that call the
+  canonical `BloomType` codec.
