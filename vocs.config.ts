@@ -1,13 +1,24 @@
 import { defineConfig } from 'vocs/config'
 
+const env = (globalThis as typeof globalThis & {
+  process?: { env?: Record<string, string | undefined> }
+}).process?.env ?? {}
+
+const siteUrl =
+  env.CF_PAGES_BRANCH === 'master'
+    ? 'https://docs.bloom.directory'
+    : env.CF_PAGES_URL
+
 export default defineConfig({
-  title: 'Bloom Docs',
-  description: 'Agentic Ethereum wallet documentation for Bloom.',
-  logoUrl: '/bloom-mark.svg',
-  iconUrl: '/bloom-mark.svg',
+  title: '/bloom | Documentation',
+  description:
+    'Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.',
+  logoUrl: '/favicon.svg',
+  iconUrl: '/favicon.svg',
+  ogImageUrl: siteUrl ? `${siteUrl}/og.png` : '/og.png',
+  baseUrl: siteUrl,
   rootDir: 'src/pages',
   renderStrategy: 'full-static',
-  baseUrl: 'https://docs.bloom.directory',
   socials: [
     { icon: 'github', link: 'https://github.com/bloom-directory' },
     { icon: 'x', link: 'https://x.com/bloomdirectory' },
