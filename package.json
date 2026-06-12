@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vocs dev",
     "lint": "tsc --noEmit",
-    "build": "vocs build",
+    "build": "vocs build && node scripts/copy-markdown-routes.mjs",
     "preview": "vocs preview"
   },
   "dependencies": {
