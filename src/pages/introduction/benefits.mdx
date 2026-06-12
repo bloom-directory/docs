@@ -1,0 +1,29 @@
+# Benefits
+
+Bloom is designed around the operating model agents already understand: files.
+
+## For users
+
+- **Human approval before funds move.** Bloom stages a transaction, renders a readable plan, runs policy checks, and waits for confirmation.
+- **Private keys stay private.** Keys live in an encrypted keystore, not in the mounted filesystem.
+- **Safer defaults.** Mainnet and L2 broadcasts are disabled by default. Reads, simulations, planning, and local devnet sends work with zero configuration.
+- **Readable audit trail.** Side-effecting operations are written into a hash-chained audit log so tampering is detectable.
+- **Policy enforcement.** Wallet-level policies can cap spend, gate contract calls, maintain allow/deny lists, and route through private orderflow when configured.
+
+## For agents
+
+- **No custom Web3 loop.** Agents can use `ls`, `cat`, and writes rather than assembling RPC calls and signing flows from scratch.
+- **Discoverable capabilities.** The mounted tree exposes docs, status, supported chains, wallets, tools, and control files in one place.
+- **Plans before actions.** Every write-oriented workflow is staged into readable artifacts such as `plan.md`, `intent.json`, and `policy_check.json`.
+- **Lower integration cost.** The same paths work through the mounted filesystem and through the `bloom vfs cat|ls|write` fallback.
+
+## For developers and integrators
+
+- **A narrow wallet backend primitive.** Bloom can sit behind existing UX as transaction planning, simulation, policy, audit, and signing infrastructure.
+- **Multi-chain read surface.** `bloom init` configures Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, and local Anvil for reads.
+- **Composable tooling.** Hashing, ABI, RLP, unit conversion, EIP-712, ENS, prices, simulation, watches, and DeFi routing appear as paths.
+- **Clear safety boundary.** Reads are broadly available; broadcasts require explicit configuration and confirmation.
+
+## Strategic benefit
+
+Agents can produce and operate software faster than humans can review it. Bloom shifts the interface from opaque generated code and ad-hoc RPC calls to a constrained, inspectable, policy-checked filesystem where trust can grow alongside automation.

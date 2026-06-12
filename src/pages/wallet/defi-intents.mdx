@@ -1,0 +1,33 @@
+# DeFi intents
+
+Bloom exposes DeFi routing under `defi/intents/<wallet>/`. The current implementation uses Enso Shortcuts.
+
+## Natural-language flow
+
+```sh
+bloom vfs write /defi/intents/alice/new --data 'swap 100 usdc to eth on ethereum'
+bloom vfs ls /defi/intents/alice
+bloom vfs cat /defi/intents/alice/<session>/plan.md
+bloom vfs cat /defi/intents/alice/<session>/route.json
+```
+
+A session may include:
+
+- `intent.txt` — the original request;
+- `route.json` — provider route details;
+- `plan.md` — human-readable plan;
+- `tx.json` — transaction payload;
+- `simulation.json` — dry-run output when available;
+- `confirm` — writable control file to stage into the wallet outbox.
+
+## Approvals
+
+When an ERC-20 input token lacks enough allowance, Bloom stages an `approve(spender, max)` intent before the swap. Both transactions must be reviewed before broadcast.
+
+## Configuration
+
+DeFi intents require an `[enso]` block in `config.toml` and an Enso API key via `BLOOM_ENSO_KEY` or `ENSO_API_KEY`. Without a key, the client returns a clear missing-key error.
+
+## Slippage
+
+Default slippage is 50 bps and can be overridden per request.

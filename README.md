@@ -1,39 +1,21 @@
 # Bloom Docs
 
-Markdown source for the Bloom developer docs site.
+Vocs-powered documentation site for Bloom.
 
-The site is built with MkDocs Material and is intended to deploy as a static
-site on Cloudflare Pages at:
-
-```text
-https://docs.bloom.directory/
-```
-
-## Local Development
+## Local development
 
 ```sh
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-mkdocs serve
+npm install
+npm run dev
 ```
 
-## Build
+Open the local URL printed by Vocs, usually `http://localhost:5173`.
+
+## Build and preview
 
 ```sh
-mkdocs build --strict
+npm run build
+npm run preview
 ```
 
-## Cloudflare Pages
-
-Use these build settings:
-
-```text
-Production branch: master
-Build command: pip install -r requirements.txt && mkdocs build --strict
-Build output directory: site
-Root directory: /
-```
-
-The repository includes `runtime.txt` to pin Python for Cloudflare Pages builds.
-
+The build output is written to `dist/`. Vocs currently emits a Waku-backed production app plus public assets, so deployment should use a host/runtime that can serve the generated Vocs/Waku output, or be wired through the hosting adapter chosen for `docs.bloom.directory`.

@@ -1,0 +1,32 @@
+# Security model
+
+Bloom is built around explicit control points between an agent and user funds.
+
+## Defaults
+
+- Mainnet and L2 broadcasts are disabled by default.
+- Private keys are never readable through the filesystem.
+- Keys are encrypted at rest with argon2id and chacha20poly1305.
+- Transaction writes create pending plans, not immediate broadcasts.
+- Policy runs before signing.
+- Side-effecting operations are appended to a hash-chained audit log.
+
+## Policy controls
+
+Per-wallet `policy.toml` can enforce:
+
+- max ETH per transaction;
+- max USD per transaction;
+- rolling 24h USD totals;
+- recipient allow and deny lists;
+- contract-call gates;
+- automation thresholds;
+- private orderflow requirements.
+
+## Private orderflow
+
+When `private = true` is configured for a wallet policy, broadcasts route through a configured private RPC provider such as MEV-Blocker or Flashbots Protect on supported chains. Unsupported chains return an explicit error rather than silently falling back to public broadcast.
+
+## Threat boundary
+
+Bloom does not make a local machine multi-tenant safe. The daemon is currently single-user and inherits the OS permissions around the Bloom home and mount point. Use OS isolation for separate users or untrusted agents.

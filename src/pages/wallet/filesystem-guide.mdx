@@ -1,0 +1,39 @@
+# Filesystem guide
+
+Bloom’s VFS is rooted at the selected mount path or at `/` when addressed through `bloom vfs`.
+
+## Top-level layout
+
+| Path | Purpose |
+| --- | --- |
+| `chains/<chain>/` | Chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
+| `wallets/<name>/` | Managed wallets, balances, nonce, outbox, and signing surfaces. |
+| `defi/intents/<wallet>/` | Natural-language and structured DeFi routing through Enso. |
+| `watch/<id>/` | Polling subscriptions for balances, blocks, gas, and events. |
+| `simulate/<session>/` | `eth_call` and state-override sandboxes without signing or broadcast. |
+| `tools/` | Hashes, ABI, RLP, base64, hex, units, EIP-712, and address helpers. |
+| `prices/` | DefiLlama spot prices and 24h changes. |
+| `addressbook/` | Local petname directory. |
+| `ens/` | ENS forward resolution. |
+| `status/` | Daemon health, backend declarations, audit state, cache counts, and policy flags. |
+| `docs/` | In-tree operational docs vendored into the VFS. |
+
+## Read examples
+
+```sh
+bloom vfs cat /chains/base/head/number
+bloom vfs cat /chains/ethereum/gas
+bloom vfs cat /chains/ethereum/contracts/<address>/abi
+bloom vfs cat /prices/spot/eth.usd
+bloom vfs cat /ens/vitalik.eth
+```
+
+## Write examples
+
+```sh
+bloom vfs write /wallets/new --data alice
+bloom vfs write /addressbook/treasury --data 0x...
+bloom vfs write /wallets/alice/chains/anvil/outbox/new.tx --data 'send 0.01 eth to 0x... on anvil'
+```
+
+Every write surface should produce inspectable state rather than surprising side effects.

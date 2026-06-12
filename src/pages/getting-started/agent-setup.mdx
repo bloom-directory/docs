@@ -1,0 +1,34 @@
+# Agent setup
+
+The preferred user prompt is:
+
+```txt
+Read https://bloom.directory/SKILL.md and set up Bloom.
+```
+
+An agent should then:
+
+1. Install or build the `bloom` binary.
+2. Run `bloom init`.
+3. Prefer a mounted filesystem when available.
+4. Fall back to `bloom vfs cat|ls|write` when mounting is blocked.
+5. Inspect `/docs/README.md`, `/status/`, and the top-level tree before taking actions.
+6. Explain what it can do and ask before confirming any transaction.
+
+## Rules for agents
+
+- Do not write custom signing or broadcast code unless Bloom cannot satisfy the task.
+- Read generated plans before asking the user to approve anything.
+- Treat missing config, disabled broadcasts, and policy failures as safety signals, not obstacles to bypass.
+- Keep live mainnet and L2 sends opt-in.
+
+## Useful discovery commands
+
+```sh
+bloom vfs ls /
+bloom vfs cat /docs/README.md
+bloom vfs cat /status/daemon.json
+bloom vfs cat /status/backends/summary.json
+bloom vfs ls /chains
+bloom vfs ls /tools
+```

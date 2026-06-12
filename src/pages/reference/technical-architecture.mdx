@@ -1,0 +1,63 @@
+# Technical architecture
+
+Bloom is a Rust workspace split into focused crates around a daemon, virtual filesystem, wallet transaction engine, and chain integrations.
+
+## Runtime shape
+
+```txt
+agent or user
+    │
+    ├─ mounted filesystem: ~/bloom, /bloom, /Volumes/bloom
+    │
+    └─ CLI fallback: bloom vfs cat|ls|write
+          │
+          ▼
+      bloom daemon
+          │
+          ├─ VFS router and handlers
+          ├─ wallet transaction engine
+          ├─ encrypted keystore and signer
+          ├─ chain RPC pool and Etherscan-backed metadata
+          ├─ DeFi routing via Enso
+          ├─ watch executor
+          └─ audit log and policy enforcement
+```
+
+`bloom serve` runs a long-lived daemon and listens on a Unix-domain JSON-RPC socket at `~/.bloom/run/bloom.sock`. Later `bloom vfs` calls auto-route through the socket when it exists, sharing unlock cache, watches, DeFi sessions, Etherscan cache, and daemon state.
+
+## Core crates
+
+| Crate | Responsibility |
+| --- | --- |
+| `bloom` | CLI binary; thin client and driver for the in-process daemon. |
+| `bloom-daemon` | Wires home dir, config, chains, keystore, VFS, IPC, ENS, and watch executor. |
+| `bloom-vfs` | Path router, handler trait, per-path caching, vendored docs, and handler modules. |
+| `bloom-chain` | RPC pool and per-chain engine for heads, blocks, addresses, and ERC-20 reads. |
+| `bloom-tx` | Stage, simulate, sign, broadcast, nonce management, and policy enforcement. |
+| `bloom-keystore` | Encrypted local key storage and signer. |
+| `bloom-defi` | Enso Shortcuts client and natural-language intent parser. |
+| `bloom-watch` | Subscription registry and polling executor with rotated event logs. |
+| `bloom-mount` | NFSv4 mount adapter behind the mount feature. |
+| `bloom-tools` | Keccak, SHA-256, Blake3, hex, base64, ABI, RLP, units, and EIP-712 helpers. |
+| `bloom-etherscan` | Etherscan v2 multichain client with on-disk TTL cache. |
+| `bloom-ens` | ENS namehash, forward, reverse, text, and contenthash resolution. |
+| `bloom-prices` | DefiLlama keyless price oracle. |
+| `bloom-proto` | Shared types for paths, config, audit, address book, intents, policy, plans, and units. |
+| `bloom-it` | Integration-test harness crate. |
+
+## Data flow for a transaction
+
+1. Agent writes an intent to a wallet outbox path.
+2. The VFS router dispatches to wallet handlers.
+3. The transaction engine parses the intent and resolves chain, recipient, gas, value, calldata, and nonce defaults.
+4. Simulation and policy checks run.
+5. Bloom writes a pending directory with `intent.json`, `plan.md`, `policy_check.json`, and control files.
+6. User or agent reads the plan.
+7. Confirmation unlocks the signer and broadcasts only if policy still permits it.
+8. The pending entry moves to `sent/` and links to chain transaction paths.
+
+## Backend boundaries
+
+Some surfaces are direct RPC reads. Others use Etherscan v2 where an indexer is required today. The live backend declaration is exposed under `status/backends/<feature>` and `status/backends/summary.json`.
+
+The future `indexer` backend is reserved but intentionally returns a clear not-implemented error today.

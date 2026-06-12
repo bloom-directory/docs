@@ -1,5 +1,7 @@
-.venv/
-site/
-.wrangler/
-__pycache__/
+node_modules
+.vocs
+.waku
+dist
 .DS_Store
+.env
+.env.*

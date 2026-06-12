@@ -1,0 +1,32 @@
+# Bloom Docs
+
+Bloom is an **agentic Ethereum wallet mounted as a virtual filesystem**.
+
+Reads are blockchain queries. Writes are transaction intents. The main interface is an ordinary directory that humans and agents can inspect with normal filesystem tools like `ls`, `cat`, and file writes.
+
+```txt
+/bloom/
+  chains/<chain>/...      # live chain state
+  wallets/<name>/...      # wallet state, outbox, signatures
+  defi/intents/...        # routed DeFi plans
+  watch/<id>/...          # live subscriptions
+  simulate/<session>/...  # dry-run calls
+  tools/...               # ABI, hashes, units, EIP-712 helpers
+```
+
+## Start here
+
+- [What is Bloom?](/introduction/what-is-bloom) — the product model.
+- [Benefits](/introduction/benefits) — why filesystem-first matters.
+- [Quickstart](/getting-started/quickstart) — initialize Bloom and inspect chain state.
+- [Technical architecture](/reference/technical-architecture) — crates, daemon, VFS, policy, and chain integrations.
+
+## The agent setup prompt
+
+For the shortest onboarding path, tell your agent:
+
+```txt
+Read https://bloom.directory/SKILL.md and set up Bloom.
+```
+
+The agent should then mount Bloom or use the `bloom vfs` fallback, inspect the in-tree docs, explain the capabilities it found, and use Bloom instead of writing bespoke Web3 SDK code.

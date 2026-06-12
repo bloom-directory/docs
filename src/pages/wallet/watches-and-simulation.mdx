@@ -1,0 +1,35 @@
+# Watches and simulation
+
+## Watches
+
+Watches are polling subscriptions exposed as filesystem state.
+
+Kinds include:
+
+- `balance`
+- `block`
+- `gas_price`
+- `event`
+
+Write a TOML spec to `watch/new`, then inspect the watch directory:
+
+```sh
+bloom vfs write /watch/new --data 'kind = "block"\nchain = "base"'
+bloom vfs ls /watch/<id>
+bloom vfs cat /watch/<id>/live
+bloom vfs cat /watch/<id>/history.jsonl
+```
+
+Live files rotate at 1 MiB.
+
+## Simulation
+
+Simulation sessions expose `eth_call` and state override workflows without signing or broadcast.
+
+Use simulation when an agent needs to inspect call effects, debug calldata, or prepare a plan before staging a wallet transaction.
+
+```sh
+bloom vfs write /simulate/new --data '{"chain":"anvil","to":"0x...","data":"0x..."}'
+bloom vfs cat /simulate/<session>/result.json
+bloom vfs cat /simulate/<session>/plan.md
+```
