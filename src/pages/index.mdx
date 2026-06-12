@@ -1,4 +1,36 @@
-# Bloom Docs
+---
+title: /bloom | Documentation
+description: Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.
+---
+
+<div className="bloom-wordmark" aria-label="/bloom">
+  <span className="bloom-wordmark-slash">/</span>bloom
+</div>
+
+<style>{`
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+  .bloom-wordmark {
+    margin: -3rem 0 -1.5rem;
+    font-family: "Instrument Serif", "Times New Roman", serif;
+    font-size: clamp(5rem, 16vw, 15rem);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.04em !important;
+    line-height: 0.85;
+    color: #141310;
+    text-shadow:
+      0 0 32px #f1ece1,
+      0 0 16px #f1ece1,
+      0 0 8px #f1ece1;
+  }
+
+  .bloom-wordmark-slash {
+    color: #8a2a3a;
+    font-style: normal;
+    letter-spacing: -0.04em !important;
+  }
+`}</style>
 
 Bloom is an **agentic Ethereum wallet mounted as a virtual filesystem**.
 
@@ -29,4 +61,4 @@ For the shortest onboarding path, tell your agent:
 Read https://bloom.directory/SKILL.md and set up Bloom.
 ```
 
-The agent should then mount Bloom or use the `bloom vfs` fallback, inspect the in-tree docs, explain the capabilities it found, and use Bloom instead of writing bespoke Web3 SDK code.
+The agent should then mount Bloom at `/bloom`, inspect the in-tree docs, explain the capabilities it found, and use Bloom instead of writing bespoke Web3 SDK code.
