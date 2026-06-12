@@ -2,6 +2,7 @@ node_modules
 .vocs
 .waku
 dist
+.wrangler
 .DS_Store
 .env
 .env.*

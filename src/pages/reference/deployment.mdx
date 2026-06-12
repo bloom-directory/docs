@@ -1,0 +1,35 @@
+# Deployment
+
+The docs are configured for Cloudflare Workers Assets, following the Vocs/Waku static deployment pattern used by adjacent Bloom sites and comparable Vocs deployments.
+
+## Local preview
+
+```sh
+npm ci
+npm run build
+npm run cf:dev
+```
+
+`npm run build` generates the full static Vocs output in `dist/public`. `npm run cf:dev` serves that output through Wrangler using `wrangler.jsonc`.
+
+## Production deploy
+
+```sh
+npm run build
+npm run deploy
+```
+
+The Worker is configured for:
+
+- Worker name: `bloom-docs`
+- Route: `docs.bloom.directory`
+- Assets directory: `./dist/public`
+- HTML handling: `drop-trailing-slash`
+- Not found handling: `404-page`
+
+## Static assets
+
+Static files live in `public/` and are copied by Vocs into the built asset directory. The repo currently preserves:
+
+- `public/CNAME` for the existing custom domain.
+- `public/bloom-mark.svg` for the docs logo and favicon.

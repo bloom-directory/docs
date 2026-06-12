@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "vocs dev",
-    "build": "vocs build",
-    "preview": "vocs preview"
+    "build": "vocs build && node scripts/postbuild.mjs",
+    "preview": "vocs preview",
+    "cf:dev": "npm run build && wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -14,6 +16,7 @@
     "waku": "1.0.0-beta.1"
   },
   "devDependencies": {
-    "typescript": "latest"
+    "typescript": "latest",
+    "wrangler": "^4.84.1"
   }
 }

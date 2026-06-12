@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bloom-docs",
+  "compatibility_date": "2026-06-12",
+  "preview_urls": true,
+  "main": "./worker.js",
+  "routes": [
+    {
+      "pattern": "docs.bloom.directory",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "./dist/public",
+    "binding": "DOCS_ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "build": {
+    "command": "npm run build"
+  }
+}

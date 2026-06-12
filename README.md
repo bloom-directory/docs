@@ -1,6 +1,6 @@
 # Bloom Docs
 
-Vocs-powered documentation site for Bloom.
+Vocs-powered documentation site for Bloom, configured for Cloudflare Workers Assets.
 
 ## Local development
 
@@ -9,13 +9,36 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vocs, usually `http://localhost:5173`.
+Open the local URL printed by Vocs.
 
-## Build and preview
+## Production build
 
 ```sh
 npm run build
 npm run preview
 ```
 
-The build output is written to `dist/`. Vocs currently emits a Waku-backed production app plus public assets, so deployment should use a host/runtime that can serve the generated Vocs/Waku output, or be wired through the hosting adapter chosen for `docs.bloom.directory`.
+`npm run build` writes the full static Vocs output to `dist/public/`.
+
+## Cloudflare preview and deploy
+
+```sh
+npm run cf:dev
+npm run deploy
+```
+
+`wrangler.jsonc` serves `./dist/public` through Workers Assets at `docs.bloom.directory`.
+
+## Content sources
+
+The docs synthesize content from:
+
+- `bloom` core repository docs and quickstart material.
+- Existing `docs` Petals documentation.
+- Adjacent `pitch` and `website` positioning copy.
+
+## Repository notes
+
+- Static files live in `public/`.
+- `public/CNAME` preserves the custom domain configuration from the previous docs site.
+- Do not commit `dist/`, `.vocs/`, `.waku/`, `.wrangler/`, or `node_modules/`.

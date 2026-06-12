@@ -6,6 +6,8 @@ export default defineConfig({
   logoUrl: '/bloom-mark.svg',
   iconUrl: '/bloom-mark.svg',
   rootDir: 'src/pages',
+  renderStrategy: 'full-static',
+  baseUrl: 'https://docs.bloom.directory',
   socials: [
     { icon: 'github', link: 'https://github.com/bloom-directory' },
     { icon: 'x', link: 'https://x.com/bloomdirectory' },
@@ -46,7 +48,9 @@ export default defineConfig({
       items: [
         { text: 'Technical architecture', link: '/reference/technical-architecture' },
         { text: 'Supported chains', link: '/reference/supported-chains' },
+        { text: 'Project map', link: '/reference/project-map' },
         { text: 'Development', link: '/reference/development' },
+        { text: 'Deployment', link: '/reference/deployment' },
         { text: 'Limitations', link: '/reference/limitations' },
       ],
     },
