@@ -1,17 +1,11 @@
+/*
+ * Vocs already shows the header logo link below the large-screen sidebar
+ * breakpoint and hides it on desktop when the sidebar is present. Match that
+ * default/Centaur pattern; only give Bloom's square SVG mark an explicit
+ * mobile header size so it paints reliably in the top bar.
+ */
 @media (max-width: 1023.98px) {
-  [data-v-logo-link] {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    min-width: 2rem;
-    height: 100%;
-  }
-
-  [data-v-logo-link] [data-v-logo] {
-    height: 100%;
-  }
-
-  [data-v-logo-link] [data-v-logo-image] {
+  [data-v-logo-image] {
     width: 1.75rem;
     height: 1.75rem;
     max-height: 1.75rem;
