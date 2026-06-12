@@ -1,14 +1,14 @@
 # DeFi intents
 
-Bloom exposes DeFi routing under `defi/intents/<wallet>/`. The current implementation uses Enso Shortcuts.
+Bloom exposes DeFi routing under `/bloom/defi/intents/<wallet>/`. The current implementation uses Enso Shortcuts.
 
 ## Natural-language flow
 
 ```sh
-bloom vfs write /defi/intents/alice/new --data 'swap 100 usdc to eth on ethereum'
-bloom vfs ls /defi/intents/alice
-bloom vfs cat /defi/intents/alice/<session>/plan.md
-bloom vfs cat /defi/intents/alice/<session>/route.json
+printf '%s' 'swap 100 usdc to eth on ethereum' > /bloom/defi/intents/alice/new
+ls /bloom/defi/intents/alice
+cat /bloom/defi/intents/alice/<session>/plan.md
+cat /bloom/defi/intents/alice/<session>/route.json
 ```
 
 A session may include:

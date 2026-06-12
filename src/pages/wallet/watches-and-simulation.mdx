@@ -11,13 +11,16 @@ Kinds include:
 - `gas_price`
 - `event`
 
-Write a TOML spec to `watch/new`, then inspect the watch directory:
+Write a TOML spec to `/bloom/watch/new`, then inspect the watch directory:
 
 ```sh
-bloom vfs write /watch/new --data 'kind = "block"\nchain = "base"'
-bloom vfs ls /watch/<id>
-bloom vfs cat /watch/<id>/live
-bloom vfs cat /watch/<id>/history.jsonl
+cat > /bloom/watch/new <<'EOF'
+kind = "block"
+chain = "base"
+EOF
+ls /bloom/watch/<id>
+cat /bloom/watch/<id>/live
+cat /bloom/watch/<id>/history.jsonl
 ```
 
 Live files rotate at 1 MiB.
@@ -29,7 +32,7 @@ Simulation sessions expose `eth_call` and state override workflows without signi
 Use simulation when an agent needs to inspect call effects, debug calldata, or prepare a plan before staging a wallet transaction.
 
 ```sh
-bloom vfs write /simulate/new --data '{"chain":"anvil","to":"0x...","data":"0x..."}'
-bloom vfs cat /simulate/<session>/result.json
-bloom vfs cat /simulate/<session>/plan.md
+printf '%s' '{"chain":"anvil","to":"0x...","data":"0x..."}' > /bloom/simulate/new
+cat /bloom/simulate/<session>/result.json
+cat /bloom/simulate/<session>/plan.md
 ```

@@ -6,16 +6,12 @@ Bloom exposes blockchain and wallet operations as paths. Reading a file performs
 
 ## Mounted directory
 
-The preferred interface is a mounted directory such as `~/bloom`, `/bloom`, or `/Volumes/bloom`. The mount lets any agent or shell tool interact with Bloom using ordinary filesystem operations.
-
-## `bloom vfs` fallback
-
-When mounting is unavailable, the CLI exposes the same paths:
+The preferred interface is the mounted `/bloom` directory. The mount lets any agent or shell tool interact with Bloom using ordinary filesystem operations.
 
 ```sh
-bloom vfs ls /
-bloom vfs cat /docs/README.md
-bloom vfs write /wallets/new --data alice
+ls /bloom/
+cat /bloom/docs/README.md
+printf '%s' alice > /bloom/wallets/new
 ```
 
 ## Stage-confirm flow
@@ -28,4 +24,4 @@ Policies live per wallet and enforce caps, recipient rules, contract-call gates,
 
 ## Audit log
 
-Bloom appends writes and side-effecting reads to a hash-chained audit log under the Bloom home directory. The current head is exposed through `status/audit/head`.
+Bloom appends writes and side-effecting reads to a hash-chained audit log under the Bloom home directory. The current head is exposed through `/bloom/status/audit/head`.

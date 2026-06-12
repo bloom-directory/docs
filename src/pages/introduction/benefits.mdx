@@ -12,10 +12,10 @@ Bloom is designed around the operating model agents already understand: files.
 
 ## For agents
 
-- **No custom Web3 loop.** Agents can use `ls`, `cat`, and writes rather than assembling RPC calls and signing flows from scratch.
+- **No custom Web3 loop.** Agents can use `ls`, `cat`, and file writes under `/bloom` rather than assembling RPC calls and signing flows from scratch.
 - **Discoverable capabilities.** The mounted tree exposes docs, status, supported chains, wallets, tools, and control files in one place.
 - **Plans before actions.** Every write-oriented workflow is staged into readable artifacts such as `plan.md`, `intent.json`, and `policy_check.json`.
-- **Lower integration cost.** The same paths work through the mounted filesystem and through the `bloom vfs cat|ls|write` fallback.
+- **Lower integration cost.** The same paths work through ordinary shell tools, scripts, and file-aware agent runtimes once `/bloom` is mounted.
 
 ## For developers and integrators
 

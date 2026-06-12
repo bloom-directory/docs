@@ -61,7 +61,6 @@ export default defineConfig({
         { text: 'Supported chains', link: '/reference/supported-chains' },
         { text: 'Project map', link: '/reference/project-map' },
         { text: 'Development', link: '/reference/development' },
-        { text: 'Deployment', link: '/reference/deployment' },
         { text: 'Limitations', link: '/reference/limitations' },
       ],
     },

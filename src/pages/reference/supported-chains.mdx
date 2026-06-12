@@ -19,13 +19,60 @@ Reads, simulations, and planning work with zero configuration when public RPC de
 ## Chain paths
 
 ```txt
-/chains/<chain>/head/number
-/chains/<chain>/head/hash
-/chains/<chain>/blocks/<number-or-hash>
-/chains/<chain>/addresses/<address>/...
-/chains/<chain>/contracts/<address>/...
-/chains/<chain>/tx/<hash>/...
+/bloom/chains/<chain>/head/number
+/bloom/chains/<chain>/head/hash
+/bloom/chains/<chain>/blocks/<number-or-hash>
+/bloom/chains/<chain>/addresses/<address>/...
+/bloom/chains/<chain>/contracts/<address>/...
+/bloom/chains/<chain>/tx/<hash>/...
 ```
+
+## Adding custom chains
+
+Custom EVM chains are added to `~/.bloom/config.toml` under `[chains.<name>]`. The name becomes the filesystem path segment under `/bloom/chains/<name>/`, so keep it lowercase and shell-friendly.
+
+A minimal read-only chain entry needs a display name, numeric EVM `chain_id`, native token metadata, and at least one RPC endpoint:
+
+```toml
+[chains.mychain]
+name = "mychain"
+chain_id = 12345
+display_name = "My Chain"
+native_symbol = "MYC"
+native_decimals = 18
+rpc_urls = ["https://rpc.mychain.example"]
+allow_broadcast = false
+```
+
+For richer endpoint selection, use `rpc_endpoints` instead of `rpc_urls`:
+
+```toml
+[[chains.mychain.rpc_endpoints]]
+url = "https://rpc-primary.mychain.example"
+weight = 100
+max_rps = 25
+http_only = true
+
+[[chains.mychain.rpc_endpoints]]
+url = "https://rpc-backup.mychain.example"
+weight = 50
+```
+
+Optional fields:
+
+- `etherscan_api_url` — Etherscan-compatible explorer API base URL for ABI/source/address-history surfaces.
+- `legacy_tx = true` — use legacy `gas_price` transactions instead of EIP-1559 fee fields.
+- `allow_broadcast = true` — permit live sends on this chain. Keep this `false` until the chain is tested and policy is configured.
+
+After editing config, restart the daemon and verify the mounted paths:
+
+```sh
+bloom serve --mount /bloom
+ls /bloom/chains/mychain
+cat /bloom/chains/mychain/head/number
+```
+
+If reads fail, check `/bloom/status/backends/summary.json` and the daemon logs first. Custom chains must provide at least one usable `rpc_urls` or `rpc_endpoints` entry.
 
 ## Etherscan-backed surfaces
 

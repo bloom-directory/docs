@@ -7,23 +7,24 @@ Bloom is a Rust workspace split into focused crates around a daemon, virtual fil
 ```txt
 agent or user
     │
-    ├─ mounted filesystem: ~/bloom, /bloom, /Volumes/bloom
+    ├─ mounted filesystem: /bloom
+    │     │
+    │     ├─ shell reads:  ls /bloom/chains, cat /bloom/status/daemon.json
+    │     └─ shell writes: printf ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
     │
-    └─ CLI fallback: bloom vfs cat|ls|write
-          │
-          ▼
-      bloom daemon
-          │
-          ├─ VFS router and handlers
-          ├─ wallet transaction engine
-          ├─ encrypted keystore and signer
-          ├─ chain RPC pool and Etherscan-backed metadata
-          ├─ DeFi routing via Enso
-          ├─ watch executor
-          └─ audit log and policy enforcement
+    ▼
+bloom daemon
+    │
+    ├─ VFS router and handlers
+    ├─ wallet transaction engine
+    ├─ encrypted keystore and signer
+    ├─ chain RPC pool and Etherscan-backed metadata
+    ├─ DeFi routing via Enso
+    ├─ watch executor
+    └─ audit log and policy enforcement
 ```
 
-`bloom serve` runs a long-lived daemon and listens on a Unix-domain JSON-RPC socket at `~/.bloom/run/bloom.sock`. Later `bloom vfs` calls auto-route through the socket when it exists, sharing unlock cache, watches, DeFi sessions, Etherscan cache, and daemon state.
+`bloom serve --mount /bloom` runs a long-lived daemon and exposes the mounted filesystem. Standard shell reads and writes share daemon state including unlock cache, watches, DeFi sessions, Etherscan cache, and policy/audit state.
 
 ## Core crates
 
@@ -47,7 +48,7 @@ agent or user
 
 ## Data flow for a transaction
 
-1. Agent writes an intent to a wallet outbox path.
+1. Agent writes an intent to a wallet outbox path under `/bloom`.
 2. The VFS router dispatches to wallet handlers.
 3. The transaction engine parses the intent and resolves chain, recipient, gas, value, calldata, and nonce defaults.
 4. Simulation and policy checks run.
@@ -58,6 +59,6 @@ agent or user
 
 ## Backend boundaries
 
-Some surfaces are direct RPC reads. Others use Etherscan v2 where an indexer is required today. The live backend declaration is exposed under `status/backends/<feature>` and `status/backends/summary.json`.
+Some surfaces are direct RPC reads. Others use Etherscan v2 where an indexer is required today. The live backend declaration is exposed under `/bloom/status/backends/<feature>` and `/bloom/status/backends/summary.json`.
 
 The future `indexer` backend is reserved but intentionally returns a clear not-implemented error today.

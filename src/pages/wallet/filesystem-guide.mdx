@@ -1,39 +1,40 @@
 # Filesystem guide
 
-Bloom’s VFS is rooted at the selected mount path or at `/` when addressed through `bloom vfs`.
+Bloom’s VFS is normally mounted at `/bloom`. Use standard shell tools against that mount: reads are `cat`/`ls`, writes are file writes.
 
 ## Top-level layout
 
 | Path | Purpose |
 | --- | --- |
-| `chains/<chain>/` | Chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
-| `wallets/<name>/` | Managed wallets, balances, nonce, outbox, and signing surfaces. |
-| `defi/intents/<wallet>/` | Natural-language and structured DeFi routing through Enso. |
-| `watch/<id>/` | Polling subscriptions for balances, blocks, gas, and events. |
-| `simulate/<session>/` | `eth_call` and state-override sandboxes without signing or broadcast. |
-| `tools/` | Hashes, ABI, RLP, base64, hex, units, EIP-712, and address helpers. |
-| `prices/` | DefiLlama spot prices and 24h changes. |
-| `addressbook/` | Local petname directory. |
-| `ens/` | ENS forward resolution. |
-| `status/` | Daemon health, backend declarations, audit state, cache counts, and policy flags. |
-| `docs/` | In-tree operational docs vendored into the VFS. |
+| `/bloom/chains/<chain>/` | Chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
+| `/bloom/wallets/<name>/` | Managed wallets, balances, nonce, outbox, and signing surfaces. |
+| `/bloom/defi/intents/<wallet>/` | Natural-language and structured DeFi routing through Enso. |
+| `/bloom/watch/<id>/` | Polling subscriptions for balances, blocks, gas, and events. |
+| `/bloom/simulate/<session>/` | `eth_call` and state-override sandboxes without signing or broadcast. |
+| `/bloom/tools/` | Hashes, ABI, RLP, base64, hex, units, EIP-712, and address helpers. |
+| `/bloom/prices/` | DefiLlama spot prices and 24h changes. |
+| `/bloom/addressbook/` | Local petname directory. |
+| `/bloom/ens/` | ENS forward resolution. |
+| `/bloom/status/` | Daemon health, backend declarations, audit state, cache counts, and policy flags. |
+| `/bloom/docs/` | In-tree operational docs vendored into the VFS. |
 
 ## Read examples
 
 ```sh
-bloom vfs cat /chains/base/head/number
-bloom vfs cat /chains/ethereum/gas
-bloom vfs cat /chains/ethereum/contracts/<address>/abi
-bloom vfs cat /prices/spot/eth.usd
-bloom vfs cat /ens/vitalik.eth
+cat /bloom/chains/base/head/number
+cat /bloom/chains/ethereum/gas
+cat /bloom/chains/ethereum/contracts/<address>/abi
+cat /bloom/prices/spot/eth.usd
+cat /bloom/ens/vitalik.eth
 ```
 
 ## Write examples
 
 ```sh
-bloom vfs write /wallets/new --data alice
-bloom vfs write /addressbook/treasury --data 0x...
-bloom vfs write /wallets/alice/chains/anvil/outbox/new.tx --data 'send 0.01 eth to 0x... on anvil'
+printf '%s' alice > /bloom/wallets/new
+printf '%s' 0x... > /bloom/addressbook/treasury
+printf '%s' 'send 0.01 eth to 0x... on anvil' \
+  > /bloom/wallets/alice/chains/anvil/outbox/new.tx
 ```
 
 Every write surface should produce inspectable state rather than surprising side effects.
