@@ -1,0 +1,20 @@
+@media (max-width: 1023.98px) {
+  [data-v-logo-link] {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 100%;
+  }
+
+  [data-v-logo-link] [data-v-logo] {
+    height: 100%;
+  }
+
+  [data-v-logo-link] [data-v-logo-image] {
+    width: 1.75rem;
+    height: 1.75rem;
+    max-height: 1.75rem;
+    object-fit: contain;
+  }
+}
