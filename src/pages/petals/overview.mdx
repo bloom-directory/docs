@@ -6,6 +6,8 @@ Petals are not ready for prime-time use. They are in active development, the API
 
 Today, Petals should be understood as the path toward safe extensions to WalletFS: small, reviewable modules that can add capabilities behind Bloom’s policy, planning, and filesystem boundaries without asking agents to write custom signing or broadcast code.
 
+For an early example of a custom petal, see [`bloombook`](https://github.com/bloom-directory/bloombook). It is useful as a developer reference for how Petals can package new filesystem-backed capabilities, but it should be treated as experimental alongside the Petals runtime itself.
+
 A petal is a Bloom application module compiled to WebAssembly. A deployed petal is content-addressed by its wasm hash and bound to a human-readable path such as `/bloom/core/fungible` or `/bloom/dex/pool`.
 
 Petals are invoked through programmable transaction blocks, or PTBs. A PTB can call multiple petal functions, pass outputs from one command into later commands, transfer objects, split and merge coins, and commit or revert atomically.

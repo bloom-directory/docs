@@ -32,7 +32,7 @@ Simulation sessions expose `eth_call` and state override workflows without signi
 Use simulation when an agent needs to inspect call effects, debug calldata, or prepare a plan before staging a wallet transaction.
 
 ```sh
-printf '%s' '{"chain":"anvil","to":"0x...","data":"0x..."}' > /bloom/simulate/new
+echo '{"chain":"anvil","to":"0x...","data":"0x..."}' > /bloom/simulate/new
 cat /bloom/simulate/<session>/result.json
 cat /bloom/simulate/<session>/plan.md
 ```

@@ -7,7 +7,7 @@ Bloom wallets are local encrypted keys or watch-only addresses exposed through t
 Plain text creates a local wallet:
 
 ```sh
-printf '%s' alice > /bloom/wallets/new
+echo alice > /bloom/wallets/new
 ```
 
 TOML supports explicit forms:
@@ -25,7 +25,7 @@ passphrase = "..."     # optional; falls back to BLOOM_PASSPHRASE
 Write to the wallet outbox:
 
 ```sh
-printf '%s' 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil' \
+echo 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil' \
   > /bloom/wallets/alice/chains/anvil/outbox/new.tx
 ```
 

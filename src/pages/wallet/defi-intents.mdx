@@ -5,7 +5,7 @@ Bloom exposes DeFi routing under `/bloom/defi/intents/<wallet>/`. The current im
 ## Natural-language flow
 
 ```sh
-printf '%s' 'swap 100 usdc to eth on ethereum' > /bloom/defi/intents/alice/new
+echo 'swap 100 usdc to eth on ethereum' > /bloom/defi/intents/alice/new
 ls /bloom/defi/intents/alice
 cat /bloom/defi/intents/alice/<session>/plan.md
 cat /bloom/defi/intents/alice/<session>/route.json

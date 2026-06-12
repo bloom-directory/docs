@@ -31,9 +31,9 @@ cat /bloom/ens/vitalik.eth
 ## Write examples
 
 ```sh
-printf '%s' alice > /bloom/wallets/new
-printf '%s' 0x... > /bloom/addressbook/treasury
-printf '%s' 'send 0.01 eth to 0x... on anvil' \
+echo alice > /bloom/wallets/new
+echo 0x... > /bloom/addressbook/treasury
+echo 'send 0.01 eth to 0x... on anvil' \
   > /bloom/wallets/alice/chains/anvil/outbox/new.tx
 ```
 

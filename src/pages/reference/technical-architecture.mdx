@@ -10,7 +10,7 @@ agent or user
     ├─ mounted filesystem: /bloom
     │     │
     │     ├─ shell reads:  ls /bloom/chains, cat /bloom/status/daemon.json
-    │     └─ shell writes: printf ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
+    │     └─ shell writes: echo ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
     │
     ▼
 bloom daemon
@@ -25,6 +25,19 @@ bloom daemon
 ```
 
 `bloom serve --mount /bloom` runs a long-lived daemon and exposes the mounted filesystem. Standard shell reads and writes share daemon state including unlock cache, watches, DeFi sessions, Etherscan cache, and policy/audit state.
+
+## NFS mount surface
+
+Bloom exposes the VFS over NFS v4.1. The local `/bloom` mount is not a separate API from the VFS router; it is the normal filesystem surface backed by Bloom's daemon, handlers, policy checks, and audit model.
+
+This matters because Bloom should fit into ordinary Unix and infrastructure workflows rather than asking every agent or app to speak a custom CLI protocol. Over time, Bloom expects to rely more on this NFS layer for:
+
+- Unix permission boundaries and familiar file ownership/mode semantics;
+- Docker and hypervisor use cases where `/bloom` can be shared into containers, VMs, or sandboxes as a mounted volume;
+- multi-process workflows where different tools read plans, inspect state, and stage intents through the same mounted tree;
+- safer automation patterns that can be constrained with standard filesystem access controls before Bloom's own policy layer evaluates an action.
+
+This area is still active work. Examples, experiments, and contributions around NFS permissions, container/VM volume sharing, and operational deployment patterns are welcome.
 
 ## Core crates
 
