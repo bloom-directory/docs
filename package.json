@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vocs dev",
+    "lint": "tsc --noEmit",
     "build": "vocs build",
     "preview": "vocs preview"
   },
