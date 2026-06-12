@@ -1,6 +1,6 @@
 # Bloom Docs
 
-Vocs-powered documentation site for Bloom, configured for Cloudflare Workers Assets.
+Vocs-powered documentation site for Bloom, configured for Cloudflare Pages.
 
 ## Local development
 
@@ -14,31 +14,34 @@ Open the local URL printed by Vocs.
 ## Production build
 
 ```sh
+npm ci
 npm run build
 npm run preview
 ```
 
-`npm run build` writes the full static Vocs output to `dist/public/`.
+`npm run build` writes the static site to `dist/public`.
 
-## Cloudflare preview and deploy
+## Cloudflare Pages deployment
 
-```sh
-npm run cf:dev
-npm run deploy
-```
+Use the existing Cloudflare Pages project for this repo.
 
-`wrangler.jsonc` serves `./dist/public` through Workers Assets at `docs.bloom.directory`.
+Recommended Pages settings:
+
+- Framework preset: `None` / custom
+- Root directory: repository root
+- Build command: `npm ci && npm run build`
+- Build output directory: `dist/public`
+- Node version: 22, or Cloudflare Pages' current LTS if 22 is unavailable
+
+Pages will create preview deployments automatically for pull requests when the Pages project is connected to the GitHub repo and preview deployments are enabled.
 
 ## Content sources
 
-The docs synthesize content from:
+The docs are seeded from:
 
-- `bloom` core repository docs and quickstart material.
-- Existing `docs` Petals documentation.
-- Adjacent `pitch` and `website` positioning copy.
+- Bloom wallet/VFS source docs in `../bloom`
+- Existing docs content from this repository
+- Product framing from `../pitch`
+- Public website copy from `../website`
 
-## Repository notes
-
-- Static files live in `public/`.
-- `public/CNAME` preserves the custom domain configuration from the previous docs site.
-- Do not commit `dist/`, `.vocs/`, `.waku/`, `.wrangler/`, or `node_modules/`.
+Do not copy secrets, private keys, RPC credentials, or unpublished operational details into this public docs site.
