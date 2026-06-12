@@ -1,0 +1,36 @@
+# Supported chains
+
+`bloom init` ships read-ready defaults for:
+
+- Ethereum
+- Base
+- Arbitrum
+- Optimism
+- Polygon
+- BNB Smart Chain
+- Avalanche
+- Gnosis
+- Linea
+- HyperEVM
+- local Anvil
+
+Reads, simulations, and planning work with zero configuration when public RPC defaults are sufficient. Live broadcasts on mainnet and L2 chains are disabled by default and require explicit global and per-chain opt-in.
+
+## Chain paths
+
+```txt
+/chains/<chain>/head/number
+/chains/<chain>/head/hash
+/chains/<chain>/blocks/<number-or-hash>
+/chains/<chain>/addresses/<address>/...
+/chains/<chain>/contracts/<address>/...
+/chains/<chain>/tx/<hash>/...
+```
+
+## Etherscan-backed surfaces
+
+Address history and contract source/ABI metadata use Etherscan v2 with a TTL cache when configured.
+
+## Mempool
+
+Mempool support is configured per chain under `[mempool.<chain>]`. Alchemy pending transaction feeds are currently the practical startup provider because they deliver full transaction bodies.

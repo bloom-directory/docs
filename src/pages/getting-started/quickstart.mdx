@@ -1,0 +1,72 @@
+# Quickstart
+
+This walkthrough uses the CLI fallback. If the mount is available, the same paths work through `/bloom` or your selected mount directory.
+
+## Prerequisites
+
+- Rust toolchain, pinned by the Bloom repo.
+- Foundry `anvil` for local devnet transaction tests.
+
+## Build and initialize
+
+```sh
+cargo build -p bloom --all-features
+cargo run -p bloom -- init
+```
+
+`bloom init` creates the Bloom home directory, writes the default config, and registers read-ready chain defaults.
+
+## Inspect chain state
+
+```sh
+cargo run -p bloom -- vfs ls /
+cargo run -p bloom -- vfs cat /docs/README.md
+cargo run -p bloom -- vfs cat /chains/ethereum/head/number
+cargo run -p bloom -- vfs cat /prices/spot/eth.usd
+```
+
+## Mount the filesystem
+
+Create a mount directory and start the daemon:
+
+```sh
+mkdir -p "$HOME/bloom"
+cargo run -p bloom -- serve --mount "$HOME/bloom"
+```
+
+Then inspect it like any other directory:
+
+```sh
+ls ~/bloom
+cat ~/bloom/docs/README.md
+ls ~/bloom/chains
+cat ~/bloom/chains/ethereum/head/number
+```
+
+## Create a demo wallet
+
+```sh
+BLOOM_PASSPHRASE=devonly bloom wallet new alice --passphrase devonly
+bloom wallet list
+```
+
+The key is encrypted in the keystore. The filesystem exposes address and public metadata, not private key material.
+
+## Stage a local transaction
+
+With Anvil running on `127.0.0.1:8545`:
+
+```sh
+bloom vfs write \
+  /wallets/alice/chains/anvil/outbox/new.tx \
+  --data 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil'
+```
+
+Review the pending entry:
+
+```sh
+bloom vfs ls /wallets/alice/chains/anvil/outbox/pending
+bloom vfs cat /wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
+```
+
+Confirm only after reading the plan.

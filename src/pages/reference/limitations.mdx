@@ -1,0 +1,13 @@
+# Limitations
+
+Bloom is useful today, but several boundaries are explicit.
+
+- **Single-user daemon.** There is no daemon-level auth or multi-tenant isolation. The mount inherits OS permissions.
+- **Mainnet broadcast is opt-in.** Live sends require both global and per-chain configuration.
+- **Embedded indexer deferred.** Address activity, token history, and contract metadata use Etherscan-backed surfaces today.
+- **Private orderflow is provider-limited.** Unsupported chains fail closed instead of falling back to public broadcast.
+- **MEV detection is heuristic.** Current checks run at stage time; post-broadcast detection is not v1 behavior.
+- **Watch executor is poll-based.** The HTTP chain engine polls on an interval rather than using a websocket fast path.
+- **Hardware wallets, smart accounts, and distributed sync are future work.**
+
+If an agent hits one of these boundaries, it should report the limitation directly rather than attempting to bypass the safety model.

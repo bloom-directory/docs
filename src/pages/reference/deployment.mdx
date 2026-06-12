@@ -1,0 +1,50 @@
+# Deployment
+
+The docs are configured for Cloudflare Pages. Vocs does **not** require Cloudflare Workers when it is built with full-static output.
+
+## Pages settings
+
+Use the existing Cloudflare Pages project for this repository with custom build settings:
+
+| Setting | Value |
+| --- | --- |
+| Framework preset | `None` / custom |
+| Root directory | repository root |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `dist/public` |
+| Node version | `22`, or Cloudflare Pages' current LTS if 22 is unavailable |
+
+The Vocs config uses:
+
+```ts
+renderStrategy: 'full-static'
+```
+
+That makes `vocs build` emit HTML and assets under `dist/public`, which Pages can serve directly.
+
+## Production deploys
+
+Connect the Pages project to `bloom-directory/docs` and configure production deployments from `master`.
+
+When a PR merges into `master`, Cloudflare Pages should run the build command and publish `dist/public`.
+
+## Pull request previews
+
+Cloudflare Pages supports automatic preview deployments for GitHub pull requests.
+
+To enable them:
+
+1. Open the Cloudflare dashboard.
+2. Go to **Workers & Pages → docs Pages project → Settings → Builds & deployments**.
+3. Ensure the project is connected to `bloom-directory/docs`.
+4. Set production branch to `master`.
+5. Enable preview deployments for pull requests / non-production branches.
+6. Confirm the build settings above.
+
+After that, each PR should get a Cloudflare Pages preview URL and a GitHub deployment/check attached to the PR.
+
+## When would Workers be needed?
+
+Use Workers only if the docs need custom edge logic: auth, redirects that Pages cannot express, headers/caching beyond Pages config, API endpoints, or server-side rendering.
+
+For the current Bloom docs site, static Pages hosting is enough and simpler.

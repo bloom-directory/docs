@@ -1,0 +1,32 @@
+# Development
+
+## Build
+
+```sh
+cargo build --workspace
+cargo build -p bloom --all-features
+```
+
+## Run
+
+```sh
+cargo run -p bloom -- status
+cargo run -p bloom -- init
+cargo run -p bloom -- serve
+cargo run -p bloom -- serve --mount "$HOME/bloom"
+```
+
+## Test
+
+```sh
+cargo test --workspace --lib
+scripts/acceptance.sh
+tests/docker/run.sh --workspace
+tests/docker/run.sh --mount
+```
+
+Docker test modes include workspace tests, privileged mount tests, Base fork wallet tests, Enso fork tests, mempool mock tests, and gated live Base tests.
+
+## Formatting and linting
+
+Use the Rust toolchain pinned in the Bloom repo. Run the narrow test first for the area you changed, then broader workspace or Docker checks before release.

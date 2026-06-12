@@ -1,0 +1,24 @@
+# What is Bloom?
+
+Bloom gives agents a safe wallet workspace for Ethereum and EVM chains.
+
+Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. Bloom makes onchain work discoverable, auditable, and policy-gated through that interface.
+
+## Current product
+
+The first Bloom application is an agentic wallet:
+
+- read live EVM state as files: balances, blocks, gas, contracts, ABI methods, storage, events, NFTs, ENS, token prices, and address history;
+- create or import encrypted wallets without exposing private keys through the filesystem;
+- stage ETH, ERC-20, NFT, contract-call, signing, and DeFi intents by writing plain-language or structured files;
+- inspect a generated `plan.md` before signing;
+- confirm a staged transaction only after user approval;
+- enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging.
+
+## Broader direction
+
+Bloom’s broader architecture extends this filesystem model to small, composable, verifiable programs called Petals. The wallet is the first concrete wedge: it makes the abstraction useful immediately for safe agent-controlled onchain workflows.
+
+## Status
+
+The current Bloom implementation is a Rust workspace with a CLI, daemon, in-process VFS, wallet transaction engine, encrypted keystore, chain readers, DeFi routing, and an optional NFSv4 mount adapter. Live reads and local development flows work out of the box. Live mainnet and L2 broadcasts are intentionally opt-in.

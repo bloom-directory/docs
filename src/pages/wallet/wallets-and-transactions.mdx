@@ -1,0 +1,49 @@
+# Wallets and transactions
+
+Bloom wallets are local encrypted keys or watch-only addresses exposed through the filesystem.
+
+## Create or import
+
+Plain text creates a local wallet:
+
+```sh
+bloom vfs write /wallets/new --data alice
+```
+
+TOML supports explicit forms:
+
+```toml
+name = "alice"
+kind = "import"        # local | import | watch
+private_key = "0x..."  # required for import
+address = "0x..."      # required for watch
+passphrase = "..."     # optional; falls back to BLOOM_PASSPHRASE
+```
+
+## Stage an intent
+
+Write to the wallet outbox:
+
+```sh
+bloom vfs write \
+  /wallets/alice/chains/anvil/outbox/new.tx \
+  --data 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil'
+```
+
+Bloom parses the intent, fills defaults, simulates where possible, runs policy checks, and creates a pending directory.
+
+## Review and confirm
+
+```sh
+bloom vfs ls /wallets/alice/chains/anvil/outbox/pending
+bloom vfs cat /wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
+bloom vfs cat /wallets/alice/chains/anvil/outbox/pending/<id>/policy_check.json
+```
+
+When running the long-lived daemon, confirm by writing non-empty content to `confirm`. For one-shot CLI flows, `bloom wallet confirm` unlocks and broadcasts in one command.
+
+```sh
+bloom wallet confirm alice anvil <id> --passphrase devonly --text y
+```
+
+After broadcast, entries move to `outbox/sent/<id>/` with the transaction hash.

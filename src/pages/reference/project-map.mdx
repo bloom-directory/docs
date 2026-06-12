@@ -1,0 +1,58 @@
+# Project map
+
+This map connects public docs concepts to the Bloom source files that currently implement them.
+
+## Agentic wallet and VFS
+
+| Concept | Source files |
+| --- | --- |
+| CLI entrypoint and VFS commands | `crates/bloom/src/` |
+| Daemon wiring, home directory, config, IPC, ENS, and watches | `crates/bloom-daemon/src/` |
+| Virtual filesystem router and handlers | `crates/bloom-vfs/src/` |
+| Vendored in-filesystem docs | `crates/bloom-vfs/src/docs/` |
+| Wallet transaction staging, simulation, signing, broadcast, and nonce management | `crates/bloom-tx/src/` |
+| Encrypted wallet keys and signing | `crates/bloom-keystore/src/` |
+| Chain heads, blocks, addresses, token reads, and RPC pool | `crates/bloom-chain/src/` |
+| Enso-backed DeFi intents | `crates/bloom-defi/src/` |
+| Watch subscriptions and polling executor | `crates/bloom-watch/src/` |
+| NFS mount adapter | `crates/bloom-mount/src/` |
+| ENS utilities | `crates/bloom-ens/src/` |
+| Etherscan v2 multichain metadata/cache | `crates/bloom-etherscan/src/` |
+| DefiLlama price oracle | `crates/bloom-prices/src/` |
+| Hashing, ABI, RLP, units, and EIP-712 helpers | `crates/bloom-tools/src/` |
+| Shared config, audit, policy, address-book, path, and intent types | `crates/bloom-proto/src/` |
+
+## Petals and programmable calls
+
+| Concept | Source files |
+| --- | --- |
+| Petal macro | `crates/bloom-resource-macros/src/petal.rs` |
+| Object macro | `crates/bloom-resource-macros/src/object.rs` |
+| Capability macro | `crates/bloom-resource-macros/src/capability.rs` |
+| Guest runtime | `crates/bloom-resource/src/lib.rs` |
+| Host wrappers | `crates/bloom-resource/src/host.rs` |
+| Guest `BloomType` runtime | `crates/bloom-resource/src/resource.rs` |
+| Canonical value codec | `crates/bloom-value/src/lib.rs` |
+| Args/return ABI envelope | `crates/bloom-resource/src/abi.rs` |
+| Manifest schema | `crates/bloom-petal-manifest/src/types.rs` |
+| Manifest extraction | `crates/bloom-petal-manifest/src/extract.rs` |
+| Object model | `crates/bloom-objects/src/` |
+| PTB wire types | `crates/bloom-script/src/types.rs` |
+| PTB validation | `crates/bloom-script/src/validator.rs` |
+| Manifest-driven value validation | `crates/bloom-script/src/value_validation.rs` |
+| PTB execution | `crates/bloom-script/src/executor.rs` |
+| Pipe builder | `crates/bloom-ptb-builder/src/` |
+| CLI pipe | `crates/bloom/src/commands/pipe.rs` |
+| VFS tx sessions | `crates/bloom-vfs/src/tx_handler.rs` |
+| Chain VM | `crates/bloom-petals/src/chain_vm.rs` |
+| Chain deploy/submit | `crates/bloom-chain-node/src/petal_executor.rs` |
+| Minimal generic petal | `examples/petal-identity/src/lib.rs` |
+| Standard fungible petal | `crates/bloom-petal-fungible/src/lib.rs` |
+| Capability example | `examples/petal-cap/src/lib.rs` |
+| DEX example | `examples/petal-dex/` |
+
+## Source repos used for these docs
+
+- `bloom` on `feat/wallet-prep` for product behavior, wallet/VFS surfaces, architecture, and developer commands.
+- the pre-existing `docs` repo for Petals docs, the project map, custom domain, and public assets.
+- `pitch` and `website` for positioning language and Cloudflare Worker deployment conventions.
