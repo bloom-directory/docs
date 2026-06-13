@@ -86,9 +86,7 @@ Pages will create preview deployments automatically for pull requests when the P
 
 The docs are seeded from:
 
-- Bloom wallet/VFS source docs in `../bloom`
-- Existing docs content from this repository
-- Product framing from `../pitch`
-- Public website copy from `../website`
+- Bloom wallet/VFS source docs in [`../bloom`](../bloom)
+- Public website copy from [bloom.directory](https://bloom.directory)
 
 Do not copy secrets, private keys, RPC credentials, or unpublished operational details into this public docs site.
