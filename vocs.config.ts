@@ -26,7 +26,7 @@ export default defineConfig({
   ],
   topNav: [
     { text: 'Website', link: 'https://bloom.directory' },
-    { text: 'GitHub', link: 'https://github.com/bloom-directory/bloom' },
+    { text: 'GitHub', link: 'https://github.com/bloom-directory/docs' },
   ],
   sidebar: [
     { text: 'Overview', link: '/' },
@@ -50,6 +50,7 @@ export default defineConfig({
       items: [
         { text: 'Filesystem guide', link: '/wallet/filesystem-guide' },
         { text: 'Wallets and transactions', link: '/wallet/wallets-and-transactions' },
+        { text: 'Use cases', link: '/wallet/use-cases' },
         { text: 'DeFi intents', link: '/wallet/defi-intents' },
         { text: 'Watches and simulation', link: '/wallet/watches-and-simulation' },
         { text: 'Security model', link: '/wallet/security-model' },
