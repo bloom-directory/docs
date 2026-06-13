@@ -14,6 +14,15 @@ for chain in ethereum base arbitrum optimism; do
 done | sort -k2,2nr
 ```
 
+Expected output:
+
+```text
+ethereum   1.284 ETH
+base       0.420 ETH
+arbitrum   0.137 ETH
+optimism   0.052 ETH
+```
+
 That pattern is useful when you want an agent to answer “where is this wallet funded right now?” without teaching it chain-specific RPC calls.
 
 ## Build calldata from contract metadata and tools
@@ -31,11 +40,30 @@ printf '{"args":["%s","%s"]}\n' "$RECIPIENT" "$AMOUNT" \
 cat /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx | jq .
 ```
 
+Expected output:
+
+```text
+transfer(address,uint256) -> 0xa9059cbb
+{
+  "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "selector": "0xa9059cbb",
+  "calldata": "0xa9059cbb...",
+  "args": ["0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "25000000"]
+}
+```
+
 For quick checks or ABI-less prep, helper files are enough:
 
 ```sh
 cat /bloom/tools/selector/'transfer(address,uint256)'
 cat /bloom/tools/keccak/'Permit(address,address,uint256,uint256,uint8,bytes32,bytes32)'
+```
+
+Expected output:
+
+```text
+0xa9059cbb
+0x<32-byte-keccak-hash>
 ```
 
 ## Read, transform, then stage a wallet intent
@@ -58,6 +86,22 @@ cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/plan.md"
 cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/policy_check.json" | jq .
 ```
 
+Expected output:
+
+```text
+# plan.md
+Send <half the wallet balance> ETH to <treasury address> on anvil
+Status: staged, not confirmed
+
+{
+  "allowed": true,
+  "checks": [
+    { "name": "spend_cap", "status": "pass" },
+    { "name": "recipient", "status": "pass" }
+  ]
+}
+```
+
 Nothing is confirmed by this pipeline. It creates a pending plan that a human or policy-aware agent can inspect before writing to `confirm` or calling the CLI confirmation flow.
 
 ## Encode ABI input in a subshell
@@ -76,6 +120,13 @@ JSON
 calldata=$(cat "/bloom/tools/abi/encode/$session/out.hex")
 selector=$(cat /bloom/tools/selector/'transfer(address,uint256)')
 printf 'selector=%s\ncalldata=%s\n' "$selector" "$calldata"
+```
+
+Expected output:
+
+```text
+selector=0xa9059cbb
+calldata=0xa9059cbb000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604500000000000000000000000000000000000000000000000000000000000f4240
 ```
 
 This is handy for scripts that need deterministic low-level calldata but still want Bloom to provide the crypto/ABI primitive as a file.
@@ -138,6 +189,27 @@ printf '{"chain":"%s","to":"%s","data":"%s","value":"0","description":"approve s
 pending=$(ls -t "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending" | head -n1)
 echo "Staged approval intent: $pending"
 cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$pending/plan.md"
+```
+
+Expected output when the current allowance is already high enough:
+
+```text
+Current allowance: 2500
+Allowance is already above threshold; no transaction staged.
+```
+
+Expected output when Bloom stages a top-up:
+
+```text
+Current allowance: 125
+Staged approval intent: 01J...
+
+# Transaction plan
+
+Chain: ethereum
+To: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Action: approve spender up to 5000 units
+Status: staged, not confirmed
 ```
 
 The same pattern works for liquidation monitors, treasury rebalancing, batched allowance hygiene, post-deploy contract checks, or any workflow where you want normal Unix composition around a wallet that remains policy-gated.
