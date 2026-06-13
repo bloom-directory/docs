@@ -21,7 +21,7 @@ export default defineConfig({
   renderStrategy: 'full-static',
   socials: [
     { icon: 'github', link: 'https://github.com/bloom-directory' },
-    { icon: 'x', link: 'https://x.com/bloomdirectory' },
+    { icon: 'x', link: 'https://x.com/bloom_directory' },
   ],
   topNav: [
     { text: 'Website', link: 'https://bloom.directory' },
