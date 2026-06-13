@@ -1,3 +1,5 @@
+import { ExpectedOutput } from '../../components/ExpectedOutput'
+
 # Use cases
 
 Bloom’s filesystem model lets Ethereum power users compose chain reads, wallet state, encoding helpers, and transaction staging with ordinary shell tooling. The examples below assume Bloom is mounted at `/bloom` and that you review every generated plan before signing.
@@ -14,7 +16,7 @@ for chain in ethereum base arbitrum optimism; do
 done | sort -k2,2nr
 ```
 
-Expected output:
+<ExpectedOutput />
 
 ```text
 ethereum   1.284 ETH
@@ -40,10 +42,13 @@ printf '{"args":["%s","%s"]}\n' "$RECIPIENT" "$AMOUNT" \
 cat /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx | jq .
 ```
 
-Expected output:
+<ExpectedOutput />
 
 ```text
+# /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.sig
 transfer(address,uint256) -> 0xa9059cbb
+
+# /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx
 {
   "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
   "selector": "0xa9059cbb",
@@ -59,11 +64,11 @@ cat /bloom/tools/selector/'transfer(address,uint256)'
 cat /bloom/tools/keccak/'Permit(address,address,uint256,uint256,uint8,bytes32,bytes32)'
 ```
 
-Expected output:
+<ExpectedOutput />
 
 ```text
 0xa9059cbb
-0x<32-byte-keccak-hash>
+0xaa0501e5e80cba255794aa8e245e2cf7b57401397d6837fd31fb38bbb8ca8a41
 ```
 
 ## Read, transform, then stage a wallet intent
@@ -86,13 +91,14 @@ cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/plan.md"
 cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/policy_check.json" | jq .
 ```
 
-Expected output:
+<ExpectedOutput />
 
 ```text
 # plan.md
 Send <half the wallet balance> ETH to <treasury address> on anvil
 Status: staged, not confirmed
 
+# policy_check.json
 {
   "allowed": true,
   "checks": [
@@ -122,7 +128,7 @@ selector=$(cat /bloom/tools/selector/'transfer(address,uint256)')
 printf 'selector=%s\ncalldata=%s\n' "$selector" "$calldata"
 ```
 
-Expected output:
+<ExpectedOutput />
 
 ```text
 selector=0xa9059cbb
@@ -191,19 +197,20 @@ echo "Staged approval intent: $pending"
 cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$pending/plan.md"
 ```
 
-Expected output when the current allowance is already high enough:
+<ExpectedOutput>Expected output: allowance already high enough</ExpectedOutput>
 
 ```text
 Current allowance: 2500
 Allowance is already above threshold; no transaction staged.
 ```
 
-Expected output when Bloom stages a top-up:
+<ExpectedOutput>Expected output: top-up staged</ExpectedOutput>
 
 ```text
 Current allowance: 125
 Staged approval intent: 01J...
 
+# plan.md
 # Transaction plan
 
 Chain: ethereum
