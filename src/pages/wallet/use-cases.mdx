@@ -1,0 +1,222 @@
+import { ExpectedOutput } from '../../components/ExpectedOutput'
+
+# Use cases
+
+Bloom’s filesystem model lets Ethereum power users compose chain reads, wallet state, encoding helpers, and transaction staging with ordinary shell tooling. The examples below assume Bloom is mounted at `/bloom` and that you review every generated plan before signing.
+
+## Compare live balances across chains
+
+Use Bloom paths as data sources and let GNU tools do the shaping:
+
+```sh
+for chain in ethereum base arbitrum optimism; do
+  wei=$(cat "/bloom/chains/$chain/addresses/$ADDRESS/balance")
+  eth=$(cat "/bloom/tools/unit/format/$wei/eth")
+  printf '%-10s %s ETH\n' "$chain" "$eth"
+done | sort -k2,2nr
+```
+
+<ExpectedOutput />
+
+```text
+ethereum   1.284 ETH
+base       0.420 ETH
+arbitrum   0.137 ETH
+optimism   0.052 ETH
+```
+
+That pattern is useful when you want an agent to answer “where is this wallet funded right now?” without teaching it chain-specific RPC calls.
+
+## Build calldata from contract metadata and tools
+
+Bloom can fetch contract ABI-backed method surfaces and Bloom tools can derive the same low-level primitives. You can inspect both before using the calldata anywhere side-effecting:
+
+```sh
+TOKEN=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 # USDC
+RECIPIENT=$(cat /bloom/tools/address/checksum/0xd8da6bf26964af9d7eed9e03e53415d37aa96045)
+AMOUNT=$(cat /bloom/tools/unit/parse/25/6)
+
+cat /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.sig
+printf '{"args":["%s","%s"]}\n' "$RECIPIENT" "$AMOUNT" \
+  > /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx
+cat /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx | jq .
+```
+
+<ExpectedOutput />
+
+```text
+# /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.sig
+transfer(address,uint256) -> 0xa9059cbb
+
+# /bloom/chains/ethereum/contracts/$TOKEN/methods/transfer.tx
+{
+  "to": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "selector": "0xa9059cbb",
+  "calldata": "0xa9059cbb...",
+  "args": ["0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "25000000"]
+}
+```
+
+For quick checks or ABI-less prep, helper files are enough:
+
+```sh
+cat /bloom/tools/selector/'transfer(address,uint256)'
+cat /bloom/tools/keccak/'Permit(address,address,uint256,uint256,uint8,bytes32,bytes32)'
+```
+
+<ExpectedOutput />
+
+```text
+0xa9059cbb
+0xaa0501e5e80cba255794aa8e245e2cf7b57401397d6837fd31fb38bbb8ca8a41
+```
+
+## Read, transform, then stage a wallet intent
+
+Because writes are just files, a shell pipeline can query state, compute an amount, and stage a transaction while leaving the final decision to the review/confirm step:
+
+```sh
+WALLET=alice
+CHAIN=anvil
+RECIPIENT=$(cat /bloom/addressbook/treasury)
+BALANCE_WEI=$(cat /bloom/wallets/$WALLET/chains/$CHAIN/balance)
+HALF_WEI=$(printf '%s\n' "$BALANCE_WEI" | awk '{ print int($1 / 2) }')
+AMOUNT_ETH=$(cat /bloom/tools/unit/format/$HALF_WEI/eth)
+
+printf 'send %s eth to %s on %s\n' "$AMOUNT_ETH" "$RECIPIENT" "$CHAIN" \
+  > /bloom/wallets/$WALLET/chains/$CHAIN/outbox/new.tx
+
+PENDING=$(ls -t /bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending | head -n1)
+cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/plan.md"
+cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/policy_check.json" | jq .
+```
+
+<ExpectedOutput />
+
+```text
+# plan.md
+Send <half the wallet balance> ETH to <treasury address> on anvil
+Status: staged, not confirmed
+
+# policy_check.json
+{
+  "allowed": true,
+  "checks": [
+    { "name": "spend_cap", "status": "pass" },
+    { "name": "recipient", "status": "pass" }
+  ]
+}
+```
+
+Nothing is confirmed by this pipeline. It creates a pending plan that a human or policy-aware agent can inspect before writing to `confirm` or calling the CLI confirmation flow.
+
+## Encode ABI input in a subshell
+
+Some tool helpers use write-then-read sessions so complex JSON does not have to fit inside a path. `mktemp` gives each shell invocation a unique Bloom tool session:
+
+```sh
+session=$(basename "$(mktemp -u bloom-abi.XXXXXX)")
+cat > "/bloom/tools/abi/encode/$session/in.json" <<'JSON'
+{
+  "sig": "transfer(address,uint256)",
+  "args": ["0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "1000000"]
+}
+JSON
+
+calldata=$(cat "/bloom/tools/abi/encode/$session/out.hex")
+selector=$(cat /bloom/tools/selector/'transfer(address,uint256)')
+printf 'selector=%s\ncalldata=%s\n' "$selector" "$calldata"
+```
+
+<ExpectedOutput />
+
+```text
+selector=0xa9059cbb
+calldata=0xa9059cbb000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604500000000000000000000000000000000000000000000000000000000000f4240
+```
+
+This is handy for scripts that need deterministic low-level calldata but still want Bloom to provide the crypto/ABI primitive as a file.
+
+## Full GNU shell script: watch allowance and stage a top-up
+
+The following script combines standard GNU utilities with Bloom files. It reads token metadata, queries an allowance, compares it to a threshold, uses `/bloom/tools/` in subshells, and stages an approval intent only when needed.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHAIN=${CHAIN:-ethereum}
+WALLET=${WALLET:-alice}
+TOKEN=${TOKEN:-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48} # USDC
+SPENDER=${SPENDER:-0x111111125421cA6dc452d289314280a0f8842A65}
+MIN_HUMAN=${MIN_HUMAN:-1000}
+TARGET_HUMAN=${TARGET_HUMAN:-5000}
+
+extract_decoded_uint() {
+  # Pull the first integer from a Bloom method response's decoded array using GNU tr/sed.
+  tr -d '\n' | sed -n 's/.*"decoded"[[:space:]]*:[[:space:]]*\[[^0-9]*\([0-9][0-9]*\).*/\1/p'
+}
+
+ge_uint() {
+  # Decimal unsigned integer comparison without overflowing shell arithmetic.
+  local a=${1#0} b=${2#0}
+  a=${a:-0}; b=${b:-0}
+  (( ${#a} > ${#b} )) || { (( ${#a} == ${#b} )) && [[ "$a" > "$b" || "$a" == "$b" ]]; }
+}
+
+owner=$(cat "/bloom/wallets/$WALLET/address")
+spender=$(cat "/bloom/tools/address/checksum/$SPENDER")
+decimals=$(cat "/bloom/chains/$CHAIN/contracts/$TOKEN/methods/decimals.read" | extract_decoded_uint)
+
+min_raw=$(cat "/bloom/tools/unit/parse/$MIN_HUMAN/$decimals")
+target_raw=$(cat "/bloom/tools/unit/parse/$TARGET_HUMAN/$decimals")
+
+printf '{"args":["%s","%s"]}\n' "$owner" "$spender" \
+  > "/bloom/chains/$CHAIN/contracts/$TOKEN/methods/allowance.read"
+allowance=$(cat "/bloom/chains/$CHAIN/contracts/$TOKEN/methods/allowance.read" | extract_decoded_uint)
+
+printf 'Current allowance: %s\n' "$(cat "/bloom/tools/unit/format/$allowance/$decimals")"
+
+if ge_uint "$allowance" "$min_raw"; then
+  echo "Allowance is already above threshold; no transaction staged."
+  exit 0
+fi
+
+session=$(basename "$(mktemp -u bloom-approve.XXXXXX)")
+printf '{"sig":"approve(address,uint256)","args":["%s","%s"]}\n' \
+  "$spender" "$target_raw" \
+  > "/bloom/tools/abi/encode/$session/in.json"
+calldata=$(cat "/bloom/tools/abi/encode/$session/out.hex")
+
+printf '{"chain":"%s","to":"%s","data":"%s","value":"0","description":"approve spender up to %s units"}\n' \
+  "$CHAIN" "$TOKEN" "$calldata" "$TARGET_HUMAN" \
+  > "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/new.tx"
+
+pending=$(ls -t "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending" | head -n1)
+echo "Staged approval intent: $pending"
+cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$pending/plan.md"
+```
+
+<ExpectedOutput>Expected output: allowance already high enough</ExpectedOutput>
+
+```text
+Current allowance: 2500
+Allowance is already above threshold; no transaction staged.
+```
+
+<ExpectedOutput>Expected output: top-up staged</ExpectedOutput>
+
+```text
+Current allowance: 125
+Staged approval intent: 01J...
+
+# plan.md
+# Transaction plan
+
+Chain: ethereum
+To: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+Action: approve spender up to 5000 units
+Status: staged, not confirmed
+```
+
+The same pattern works for liquidation monitors, treasury rebalancing, batched allowance hygiene, post-deploy contract checks, or any workflow where you want normal Unix composition around a wallet that remains policy-gated.

@@ -12,3 +12,36 @@
     object-fit: contain;
   }
 }
+
+.bloom-expected-output {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.25rem 0 0;
+  border: 1px solid color-mix(in srgb, var(--vocs-color_border, #30363d) 72%, transparent);
+  border-bottom: 0;
+  border-radius: 0.65rem 0.65rem 0 0;
+  padding: 0.36rem 0.7rem 0.32rem;
+  background: color-mix(in srgb, var(--vocs-color_background2, #161b22) 88%, var(--vocs-color_background, #0d1117) 12%);
+  color: var(--vocs-color_text2, #8b949e);
+  font-family: var(--vocs-fontFamily_mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.bloom-expected-output::before {
+  content: '';
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: var(--vocs-color_green, #22c55e);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--vocs-color_green, #22c55e) 45%, transparent),
+    0 0 12px color-mix(in srgb, var(--vocs-color_green, #22c55e) 28%, transparent);
+}
+
+.bloom-expected-output + div,
+.bloom-expected-output + pre {
+  margin-top: 0 !important;
+}
