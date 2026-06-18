@@ -13,10 +13,7 @@ export default defineConfig({
   title: '/bloom | Documentation',
   description:
     'Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.',
-  logoUrl: {
-    light: '/favicon-options/bloom-mono-black.svg',
-    dark: '/favicon-options/bloom-mono-white.svg',
-  },
+  logoUrl: '/logo.svg',
   iconUrl: {
     light: '/favicon-options/bloom-mono-black.svg',
     dark: '/favicon-options/bloom-mono-white.svg',

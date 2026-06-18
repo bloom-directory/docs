@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/bloom-mark.svg" alt="Bloom" width="96">
+  <img src="public/logo.svg" alt="Bloom" width="96">
 </p>
 
 <h1 align="center">Bloom Docs</h1>
