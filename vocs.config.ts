@@ -43,7 +43,7 @@ export default defineConfig({
         { text: 'Safety and approvals', link: '/use-bloom/safety-and-approvals' },
         { text: 'Policies', link: '/use-bloom/policies' },
         { text: 'Petals for users', link: '/use-bloom/petals-for-users' },
-        { text: 'Chains and FAQ', link: '/use-bloom/chains-and-faq' },
+        { text: 'FAQ', link: '/use-bloom/faq' },
       ],
     },
     {
@@ -52,13 +52,15 @@ export default defineConfig({
         { text: 'What is Bloom?', link: '/introduction/what-is-bloom' },
         { text: 'Benefits', link: '/introduction/benefits' },
         { text: 'Core concepts', link: '/introduction/core-concepts' },
+        { text: 'Demos', link: '/introduction/demos' },
       ],
     },
     {
       text: 'Integrators',
       items: [
-        { text: 'Local build and mount', link: '/getting-started/quickstart' },
-        { text: 'Agent setup', link: '/getting-started/agent-setup' },
+        { text: 'Local build and mount', link: '/integrators/quickstart' },
+        { text: 'Agent setup', link: '/integrators/agent-setup' },
+        { text: 'Integrating Bloom', link: '/integrators/integrating' },
       ],
     },
     {

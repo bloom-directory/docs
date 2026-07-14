@@ -12,11 +12,21 @@ Bloom is a framework for creating agent-safe software components. The first appl
   />
 </div>
 
-Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. Bloom makes onchain work discoverable, auditable, and policy-gated through that interface.
+Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, walletFS exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. walletFS makes onchain work discoverable, auditable, and policy-gated through that interface.
 
-## Current product
 
-The first Bloom application is an agentic wallet:
+```txt
+/bloom/
+  chains/<chain>/...      # live chain state
+  wallets/<name>/...      # wallet state, outbox, signatures
+  defi/intents/...        # routed DeFi plans
+  watch/<id>/...          # live subscriptions
+  simulate/<session>/...  # dry-run calls
+  tools/...               # ABI, hashes, units, EIP-712 helpers
+  petals/...              # Petals (walletFS extensions)
+```
+
+## Current walletFS state
 
 - read live EVM state as files: balances, blocks, gas, contracts, ABI methods, storage, events, NFTs, ENS, token prices, and address history;
 - create or import encrypted wallets without exposing private keys through the filesystem;
@@ -25,9 +35,12 @@ The first Bloom application is an agentic wallet:
 - confirm a staged transaction only after user approval;
 - enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging.
 
+On the filesystem this looks like:
+The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes are transaction intents. Nothing moves until a policy-checked plan is approved and signed outside the agent sandbox.
+
 ## Broader direction
 
-Bloom’s broader architecture extends this filesystem model to small, composable, verifiable programs called Petals. walletFS is the first use case of Petals: it makes the abstraction useful immediately for safe agent-controlled onchain workflows.
+Bloom’s broader architecture extends this filesystem model to small, composable, verifiable programs called [Petals](/petals/overview). In the case of walletFS, Petals enable agent-safe wallet-extensions. This allows you and your agent to extend walletFS, safely, to accomplish innovative use cases e.g. a Polymarket trading bot, a Hyperliquid strategy or whatever you and your agent think of. 
 
 ## Status
 

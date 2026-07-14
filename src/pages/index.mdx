@@ -34,46 +34,31 @@ description: Documentation for Bloom users, integrators, and developers.
 
 These docs serve three audiences in one place: **users** who want agents to operate crypto safely, **integrators** who want to mount and operate Bloom, and **developers** who want to build on the wallet and petal surfaces.
 
-The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes are transaction intents. Nothing moves until a policy-checked plan is approved and signed outside the agent sandbox.
-
-```txt
-/bloom/
-  chains/<chain>/...      # live chain state
-  wallets/<name>/...      # wallet state, outbox, signatures
-  defi/intents/...        # routed DeFi plans
-  watch/<id>/...          # live subscriptions
-  simulate/<session>/...  # dry-run calls
-  tools/...               # ABI, hashes, units, EIP-712 helpers
-```
-
 :::warning
 Bloom walletFS is alpha software. It is experimental and unaudited. Mainnet broadcasting is off by default; start with a local or test network and small amounts.
 :::
 
-## Start as a user
+## I want to use Bloom
 
 If you use Claude Code, Codex, Hermes, or another coding agent, start here:
 
 - [Start here](/use-bloom/start-here) — Bloom in plain English.
 - [Is Bloom for me?](/use-bloom/is-this-for-me) — who should use it today, and who should wait.
-- [Concepts](/use-bloom/concepts) — sandbox, plans, outbox, policy, petals, and self-custody.
 - [Quickstart](/use-bloom/quickstart) — the shortest agent-led onboarding path.
-- [Safety and approvals](/use-bloom/safety-and-approvals) — how staging, policy, approval, signing, and audit logs work.
-- [Policies](/use-bloom/policies) — the rules that limit what agents can do.
-- [Petals for users](/use-bloom/petals-for-users) — how Bloom grows protocol capabilities.
-- [Chains and FAQ](/use-bloom/chains-and-faq) — supported chains, costs, keys, and the bigger picture.
+- [FAQ](/use-bloom/faq) — supported chains, costs, keys, and the bigger picture.
 
-## Integrate or operate Bloom
+## I want to integrate Bloom
 
-If you are wiring Bloom into an agent environment or local machine:
+If you are wiring Bloom into an agent environment, local machine or your existing product:
 
-- [Local build and mount](/getting-started/quickstart) — initialize Bloom and inspect chain state.
-- [Agent setup](/getting-started/agent-setup) — rules and discovery commands for agents.
+- [Local build and mount](/integrators/quickstart) — initialize Bloom and inspect chain state.
+- [Agent setup](/integrators/agent-setup) — rules and discovery commands for agents.
+- [Integrating Bloom](/integrators/integrating) - learn about how you can integrate Bloom into your product.
 - [Filesystem guide](/wallet/filesystem-guide) — the mounted `/bloom` tree.
 - [Wallets and transactions](/wallet/wallets-and-transactions) — wallet lifecycle and staged intents.
 - [Security model](/wallet/security-model) — defaults, policies, and threat boundaries.
 
-## Build on Bloom
+## I want to build on Bloom
 
 If you are developing Bloom itself or adding protocol capabilities:
 
@@ -82,7 +67,6 @@ If you are developing Bloom itself or adding protocol capabilities:
 - [Project map](/reference/project-map) — repos and source material behind these docs.
 - [Development](/reference/development) — build, run, test, format, and lint.
 - [Petals overview](/petals/overview) — protocol/capability extension model.
-- [Petal authoring](/petals/authoring) — the developer surface for building petals.
 
 ## The agent setup prompt
 
