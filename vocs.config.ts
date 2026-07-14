@@ -38,6 +38,7 @@ export default defineConfig({
       items: [
         { text: 'Start here', link: '/use-bloom/start-here' },
         { text: 'Is Bloom for me?', link: '/use-bloom/is-this-for-me' },
+        { text: 'Concepts', link: '/use-bloom/concepts' },
         { text: 'Quickstart', link: '/use-bloom/quickstart' },
         { text: 'Safety and approvals', link: '/use-bloom/safety-and-approvals' },
         { text: 'Policies', link: '/use-bloom/policies' },
@@ -56,7 +57,7 @@ export default defineConfig({
     {
       text: 'Integrators',
       items: [
-        { text: 'Quickstart', link: '/getting-started/quickstart' },
+        { text: 'Local build and mount', link: '/getting-started/quickstart' },
         { text: 'Agent setup', link: '/getting-started/agent-setup' },
       ],
     },

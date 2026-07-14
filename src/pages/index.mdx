@@ -36,6 +36,16 @@ These docs serve three audiences in one place: **users** who want agents to oper
 
 The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes are transaction intents. Nothing moves until a policy-checked plan is approved and signed outside the agent sandbox.
 
+```txt
+/bloom/
+  chains/<chain>/...      # live chain state
+  wallets/<name>/...      # wallet state, outbox, signatures
+  defi/intents/...        # routed DeFi plans
+  watch/<id>/...          # live subscriptions
+  simulate/<session>/...  # dry-run calls
+  tools/...               # ABI, hashes, units, EIP-712 helpers
+```
+
 :::warning
 Bloom walletFS is alpha software. It is experimental and unaudited. Mainnet broadcasting is off by default; start with a local or test network and small amounts.
 :::
@@ -46,13 +56,18 @@ If you use Claude Code, Codex, Hermes, or another coding agent, start here:
 
 - [Start here](/use-bloom/start-here) — Bloom in plain English.
 - [Is Bloom for me?](/use-bloom/is-this-for-me) — who should use it today, and who should wait.
+- [Concepts](/use-bloom/concepts) — sandbox, plans, outbox, policy, petals, and self-custody.
 - [Quickstart](/use-bloom/quickstart) — the shortest agent-led onboarding path.
 - [Safety and approvals](/use-bloom/safety-and-approvals) — how staging, policy, approval, signing, and audit logs work.
+- [Policies](/use-bloom/policies) — the rules that limit what agents can do.
+- [Petals for users](/use-bloom/petals-for-users) — how Bloom grows protocol capabilities.
+- [Chains and FAQ](/use-bloom/chains-and-faq) — supported chains, costs, keys, and the bigger picture.
 
 ## Integrate or operate Bloom
 
 If you are wiring Bloom into an agent environment or local machine:
 
+- [Local build and mount](/getting-started/quickstart) — initialize Bloom and inspect chain state.
 - [Agent setup](/getting-started/agent-setup) — rules and discovery commands for agents.
 - [Filesystem guide](/wallet/filesystem-guide) — the mounted `/bloom` tree.
 - [Wallets and transactions](/wallet/wallets-and-transactions) — wallet lifecycle and staged intents.
@@ -64,6 +79,8 @@ If you are developing Bloom itself or adding protocol capabilities:
 
 - [Technical architecture](/reference/technical-architecture) — crates, daemon, VFS, policy, and chain integrations.
 - [Supported chains](/reference/supported-chains) — chain paths and backend expectations.
+- [Project map](/reference/project-map) — repos and source material behind these docs.
+- [Development](/reference/development) — build, run, test, format, and lint.
 - [Petals overview](/petals/overview) — protocol/capability extension model.
 - [Petal authoring](/petals/authoring) — the developer surface for building petals.
 
