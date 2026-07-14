@@ -1,0 +1,22 @@
+---
+title: Concepts
+description: Plain-English definitions for the Bloom wallet model.
+---
+
+# Concepts
+
+You do not need to memorize these before using Bloom. You will pick them up by asking your agent to explore the filesystem. Still, these are the words that show up everywhere.
+
+| Term | Plain-English meaning |
+| --- | --- |
+| Sandbox | A fenced-off workspace where your agent operates. Your keys, passwords, and secrets live outside it, so a compromised or confused agent should not be able to reach them. |
+| Plan | A draft transaction written in readable language: what will happen, where value moves, and why. A plan does not move money by itself. |
+| Outbox | The folder where staged plans wait. Think of it as your wallet's drafts folder. Nothing should leave the outbox without passing policy and approval. |
+| Policy | Your wallet's rulebook: spend caps, allow-lists, deny-lists, approval requirements, and other limits the agent cannot simply talk its way around. |
+| Petal | A capability extension that teaches Bloom how to work with a protocol or workflow, such as Polymarket, Hyperliquid, or agent-to-agent payments. |
+
+## Self-custodial
+
+You will also see the word **self-custodial**. It means you hold your keys on your machine. Not Bloom. Not an exchange. Not a server that can freeze, lose, or "temporarily suspend" your funds.
+
+That is the point, and also the responsibility: if you delete your backup, there is no company to call. Back up keys before treating any wallet as important.

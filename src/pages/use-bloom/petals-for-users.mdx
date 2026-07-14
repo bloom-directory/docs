@@ -1,0 +1,34 @@
+---
+title: Petals for users
+description: How Bloom capabilities are added and discovered by agents.
+---
+
+# Petals for users
+
+Out of the box, a wallet can send, receive, read balances, and stage basic actions. **Petals** are how Bloom grows beyond that.
+
+A petal is an extension for a protocol or capability: Polymarket, Hyperliquid, agent-to-agent payments, and other surfaces as the catalog grows.
+
+What makes petals different from ordinary plugins is that they are designed for agents to read. A petal describes what it can do, what inputs it accepts, what files it exposes, and what approval/policy boundaries matter.
+
+That means discovery can look like this:
+
+```txt
+What can I do on Polymarket through Bloom?
+```
+
+Your agent reads the petal, explains the available actions, and can stage work subject to your policy and approval rules.
+
+## Caveats
+
+- Petals are experimental. Treat third-party petals the way you would treat any dependency from a stranger.
+- The catalog is small today. Early petals are proof points, not a complete app store.
+- Inspectability matters. Because petals are open and file-described, your agent can read what a petal does before you trust it.
+
+## For builders
+
+If you want to author a petal or integrate a protocol, continue to the technical petal docs:
+
+- [Petals overview](/petals/overview)
+- [Petal quickstart](/petals/quickstart)
+- [Petal model](/petals/model)

@@ -1,0 +1,38 @@
+---
+title: Quickstart
+description: The shortest Bloom onboarding path for agent users.
+---
+
+# Quickstart
+
+You do not install Bloom by memorizing a manual. Your agent does the setup work.
+
+Open your agent and tell it:
+
+```txt
+Read https://bloom.directory/SKILL.md and set up Bloom.
+```
+
+Your agent should fetch Bloom's agent-facing setup instructions, mount Bloom on your machine, and read the documentation that ships inside the filesystem.
+
+When it finishes, ask:
+
+```txt
+Look around the Bloom filesystem and tell me what you can do.
+```
+
+Because everything is a file, the agent can answer by exploring the mounted tree the same way it explores a codebase.
+
+## Your first ten minutes
+
+1. **Use a test network first.** Ask: "Set me up on a testnet so nothing here involves real money." Local and test networks are supported out of the box, and mainnet broadcasting is off by default.
+2. **Create a wallet.** Ask: "Create a new wallet for me and show me where it lives in the filesystem." Notice what appears: addresses, plans, policies, and no private keys.
+3. **Read chain state.** Ask: "What's the balance of vitalik.eth?" Your agent should answer by reading files rather than by holding a private RPC integration in its own context.
+4. **Stage, do not send, a transaction.** Ask: "Draft a transaction sending a tiny amount of test ETH to this address, but don't do anything beyond staging it." Then inspect the plan.
+5. **Approve only if it matches your intent.** Read the human-readable plan. If it says what you meant, approve it. If it does not, reject it.
+
+## Next
+
+- [Safety and approvals](/use-bloom/safety-and-approvals) explains how money moves.
+- [Policies](/use-bloom/policies) shows the rules you should set before trusting automation.
+- [Agent setup](/integrators/agent-setup) has lower-level setup guidance for agent operators.

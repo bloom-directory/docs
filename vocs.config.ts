@@ -7,12 +7,12 @@ const env = (globalThis as typeof globalThis & {
 const siteUrl =
   env.CF_PAGES_BRANCH === 'master'
     ? 'https://docs.bloom.directory'
-    : env.CF_PAGES_URL
+    : undefined
 
 export default defineConfig({
   title: '/bloom | Documentation',
   description:
-    'Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.',
+    'Documentation for Bloom users, integrators, and developers: agentic wallets, filesystem-first crypto workflows, and petals.',
   logoUrl: '/logo.svg',
   iconUrl: {
     light: '/favicon-options/bloom-mono-black.svg',
@@ -34,22 +34,37 @@ export default defineConfig({
   sidebar: [
     { text: 'Overview', link: '/' },
     {
-      text: 'Introduction',
+      text: 'Use Bloom',
+      items: [
+        { text: 'Start here', link: '/use-bloom/start-here' },
+        { text: 'Is Bloom for me?', link: '/use-bloom/is-this-for-me' },
+        { text: 'Concepts', link: '/use-bloom/concepts' },
+        { text: 'Quickstart', link: '/use-bloom/quickstart' },
+        { text: 'Safety and approvals', link: '/use-bloom/safety-and-approvals' },
+        { text: 'Policies', link: '/use-bloom/policies' },
+        { text: 'Petals for users', link: '/use-bloom/petals-for-users' },
+        { text: 'FAQ', link: '/use-bloom/faq' },
+      ],
+    },
+    {
+      text: 'Product model',
       items: [
         { text: 'What is Bloom?', link: '/introduction/what-is-bloom' },
         { text: 'Benefits', link: '/introduction/benefits' },
         { text: 'Core concepts', link: '/introduction/core-concepts' },
+        { text: 'Demos', link: '/introduction/demos' },
       ],
     },
     {
-      text: 'Getting started',
+      text: 'Integrators',
       items: [
-        { text: 'Quickstart', link: '/getting-started/quickstart' },
-        { text: 'Agent setup', link: '/getting-started/agent-setup' },
+        { text: 'Local build and mount', link: '/integrators/quickstart' },
+        { text: 'Agent setup', link: '/integrators/agent-setup' },
+        { text: 'Integrating Bloom', link: '/integrators/integrating' },
       ],
     },
     {
-      text: 'Agentic wallet',
+      text: 'Wallet reference',
       items: [
         { text: 'Filesystem guide', link: '/wallet/filesystem-guide' },
         { text: 'Wallets and transactions', link: '/wallet/wallets-and-transactions' },

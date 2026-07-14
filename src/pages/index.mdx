@@ -1,6 +1,6 @@
 ---
 title: /bloom | Documentation
-description: Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.
+description: Documentation for Bloom users, integrators, and developers.
 ---
 
 <div className="bloom-wordmark" aria-label="/bloom">
@@ -32,26 +32,41 @@ description: Documentation for Bloom, the agentic Ethereum wallet mounted as a v
   }
 `}</style>
 
-/bloom walletFS is an **agentic Ethereum wallet mounted as a virtual filesystem**.
+These docs serve three audiences in one place: **users** who want agents to operate crypto safely, **integrators** who want to mount and operate Bloom, and **developers** who want to build on the wallet and petal surfaces.
 
-Reads are blockchain queries. Writes are transaction intents. The main interface is an ordinary directory that humans and agents can inspect with normal filesystem tools like `ls`, `cat`, and file writes.
+:::warning
+Bloom walletFS is alpha software. It is experimental and unaudited. Mainnet broadcasting is off by default; start with a local or test network and small amounts.
+:::
 
-```txt
-/bloom/
-  chains/<chain>/...      # live chain state
-  wallets/<name>/...      # wallet state, outbox, signatures
-  defi/intents/...        # routed DeFi plans
-  watch/<id>/...          # live subscriptions
-  simulate/<session>/...  # dry-run calls
-  tools/...               # ABI, hashes, units, EIP-712 helpers
-```
+## I want to use Bloom
 
-## Start here
+If you use Claude Code, Codex, Hermes, or another coding agent, start here:
 
-- [What is Bloom?](/introduction/what-is-bloom) — the product model.
-- [Benefits](/introduction/benefits) — why filesystem-first matters.
-- [Quickstart](/getting-started/quickstart) — initialize Bloom and inspect chain state.
+- [Start here](/use-bloom/start-here) — Bloom in plain English.
+- [Is Bloom for me?](/use-bloom/is-this-for-me) — who should use it today, and who should wait.
+- [Quickstart](/use-bloom/quickstart) — the shortest agent-led onboarding path.
+- [FAQ](/use-bloom/faq) — supported chains, costs, keys, and the bigger picture.
+
+## I want to integrate Bloom
+
+If you are wiring Bloom into an agent environment, local machine or your existing product:
+
+- [Local build and mount](/integrators/quickstart) — initialize Bloom and inspect chain state.
+- [Agent setup](/integrators/agent-setup) — rules and discovery commands for agents.
+- [Integrating Bloom](/integrators/integrating) - learn about how you can integrate Bloom into your product.
+- [Filesystem guide](/wallet/filesystem-guide) — the mounted `/bloom` tree.
+- [Wallets and transactions](/wallet/wallets-and-transactions) — wallet lifecycle and staged intents.
+- [Security model](/wallet/security-model) — defaults, policies, and threat boundaries.
+
+## I want to build on Bloom
+
+If you are developing Bloom itself or adding protocol capabilities:
+
 - [Technical architecture](/reference/technical-architecture) — crates, daemon, VFS, policy, and chain integrations.
+- [Supported chains](/reference/supported-chains) — chain paths and backend expectations.
+- [Project map](/reference/project-map) — repos and source material behind these docs.
+- [Development](/reference/development) — build, run, test, format, and lint.
+- [Petals overview](/petals/overview) — protocol/capability extension model.
 
 ## The agent setup prompt
 
@@ -61,4 +76,4 @@ For the shortest onboarding path, tell your agent:
 Read https://bloom.directory/SKILL.md and set up Bloom.
 ```
 
-The agent should then mount Bloom at `/bloom`, inspect the in-tree docs, explain the capabilities it found, and use Bloom instead of writing bespoke Web3 SDK code.
+The agent should mount Bloom, inspect the filesystem docs, explain the capabilities it found, and use Bloom instead of asking you for private keys or writing bespoke Web3 signing code.
