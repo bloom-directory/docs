@@ -7,7 +7,7 @@ const env = (globalThis as typeof globalThis & {
 const siteUrl =
   env.CF_PAGES_BRANCH === 'master'
     ? 'https://docs.bloom.directory'
-    : env.CF_PAGES_URL
+    : undefined
 
 export default defineConfig({
   title: '/bloom | Documentation',
