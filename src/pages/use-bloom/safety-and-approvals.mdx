@@ -1,0 +1,38 @@
+---
+title: Safety and approvals
+description: How Bloom stages, checks, approves, signs, and logs wallet actions.
+---
+
+# Safety and approvals
+
+This is the part to actually read. It is the part that keeps you safe.
+
+## How money moves
+
+1. **Your agent stages an intent.** You say “swap 0.05 ETH for USDC.” Your agent writes that intention into the outbox. At this point, nothing has happened on-chain.
+2. **Bloom checks the plan against policy.** Spend caps, allow-lists, deny-lists, chain restrictions, and approval rules are enforced outside the agent's sandbox. If the plan violates policy, it should stop there.
+3. **You read a human-readable plan.** Not a wall of hex: a readable explanation of what will happen, where value moves, and why.
+4. **You approve.** Only after approval does signing happen, using keys the agent has never seen.
+5. **Bloom logs the action.** Meaningful actions are written to audit logs you can inspect later.
+
+## What if my agent gets prompt-injected?
+
+A manipulated agent can try to stage a bad plan. That is the honest risk.
+
+Bloom reduces the blast radius by keeping the private key outside the agent's readable world. A bad plan still has to pass policy and receive approval before it can be signed. That does not make risk zero, but it is much safer than giving an agent unrestricted signing power or secrets in its context window.
+
+Stay skeptical. Read plans before approving them. Keep caps low.
+
+## What if my agent mistypes an address?
+
+Agents are bad at long random-looking strings. Bloom encourages address labels so the wallet, not the agent, resolves a human name to an exact address.
+
+Prefer “send to Josh” over “send to `0x...`” once you have set up and checked the label. The wallet should resolve the label to the actual address from your trusted address book.
+
+## Why there is no “Connect Wallet” button
+
+Bloom deliberately avoids the browser extension and “Connect Wallet” pattern.
+
+Website front-ends are a major crypto attack surface: a protocol can be sound while a compromised website feeds your wallet a poisoned transaction. Bloom's model is for your agent to talk directly to protocol capabilities through the filesystem and petals, subject to policy and approval.
+
+The agent is the front-end. Bloom is the guardrail between the agent and your money.

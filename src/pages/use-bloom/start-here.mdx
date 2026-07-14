@@ -1,0 +1,37 @@
+---
+title: Start here
+description: Bloom in plain English for people who build with agents.
+---
+
+# Start here
+
+Bloom's current wallet surface, **walletFS**, is a crypto wallet your AI agent can actually use without ever seeing your private keys.
+
+Instead of giving an agent a pile of Web3 tools or, worse, a seed phrase, Bloom turns wallet and chain interactions into ordinary files and folders. Agents already know how to read, inspect, and write files. Bloom uses that strength as the interface.
+
+- **Reading a file** asks the blockchain a question.
+- **Writing a file** stages a transaction intent. It does not send money.
+- **Approving a plan** is the step that can actually sign and broadcast.
+
+Your keys are not files in the Bloom filesystem. They live in an encrypted keystore outside the agent's sandbox. The agent can draft work, explain it, and prepare a plan, but signing only happens after the plan passes policy and gets approval.
+
+:::warning
+Bloom walletFS is alpha software. It is experimental and unaudited. Mainnet broadcasting is off by default; you have to deliberately enable it. Start on a local or test network, use small amounts, and treat the system like early software.
+:::
+
+## Who these docs are for
+
+Start here if you use Claude Code, Codex, Hermes, or another coding agent and want it to interact with crypto safely: check balances, stage transfers, inspect positions, or prepare protocol actions without pasting secrets into a chat window.
+
+If you are integrating Bloom into an app or building petals, this first section gives the product model. The later sections go deeper:
+
+- [Agent setup](/getting-started/agent-setup) for integrators and agent operators.
+- [Filesystem guide](/wallet/filesystem-guide) for the wallet surface.
+- [Technical architecture](/reference/technical-architecture) for implementation details.
+- [Petals](/petals/overview) for protocol/capability authors.
+
+## The whole model
+
+Your agent proposes. Bloom checks. You approve. Bloom signs.
+
+That is the core safety loop. A prompt-injected or confused agent can stage a bad plan, but it should not be able to steal a private key because the key was never in the agent's readable world.

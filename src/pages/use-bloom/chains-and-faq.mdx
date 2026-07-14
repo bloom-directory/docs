@@ -1,0 +1,50 @@
+---
+title: Chains and FAQ
+description: Supported chains, cost, keys, existing wallets, and where Bloom is heading.
+---
+
+# Chains and FAQ
+
+## Which chains work?
+
+Bloom walletFS targets EVM-compatible chains: if a chain speaks standard Ethereum RPC, Bloom can model it through the wallet filesystem.
+
+The current docs cover Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, HyperCore, Tempo, Robinhood Chain, and a local Anvil dev chain for consequence-free experiments.
+
+Solana and Canton are planned surfaces, not shipped user paths today.
+
+For technical chain details, see [Supported chains](/reference/supported-chains).
+
+## Do I need to know how to code?
+
+No, but you need to be comfortable directing an agent that codes. If you have shipped anything with Claude Code, Codex, Hermes, or a similar tool, you are the target user.
+
+If a terminal makes you close the tab, Bloom may still feel raw today. The agent smooths much of the workflow, but the product is still alpha.
+
+## Does Bloom cost anything?
+
+Bloom is free, open-source software that runs on your machine. You pay normal blockchain gas for transactions you approve and whatever AI provider costs your agent incurs.
+
+## Where are my keys?
+
+In an encrypted keystore on your own machine, outside the agent's sandbox. They are not represented as files the agent can read, they should not enter the agent's context window, and Bloom does not custody them on a server.
+
+## Can I use the wallet I already have?
+
+Bloom walletFS creates and manages its own wallets today. A safe first path is to fund a Bloom-managed wallet from an existing wallet with a small amount while you test. Integrations with existing wallet and custody providers are a future direction, not the default starting point.
+
+## My agent seems confused. What should I do?
+
+Tell it to re-read the setup instructions:
+
+```txt
+Read https://bloom.directory/SKILL.md again and re-check your Bloom setup.
+```
+
+Then ask it to inspect the mounted Bloom filesystem and summarize the docs it finds there.
+
+## The bigger picture
+
+Bloom is larger than walletFS. The long-term bet is that agents need software components they can inspect, verify, and safely compose. Petals are Bloom's path toward that: agent-readable, policy-aware capabilities that can be reused across wallets, protocols, and products.
+
+walletFS starts with crypto because the stakes are high and the security model has to be real. If the model works where mistakes cost money, it can generalize to other agent-controlled software.

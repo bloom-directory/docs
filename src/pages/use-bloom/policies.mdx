@@ -1,0 +1,42 @@
+---
+title: Policies
+description: The wallet rules that limit what agents can do.
+---
+
+# Policies
+
+Policy is your wallet's rulebook. It defines what may happen automatically, what requires approval, and what must never happen.
+
+You do not need to hand-edit policy files to get started. Tell your agent what posture you want:
+
+```txt
+Set a policy on my wallet: max 0.05 ETH per transaction, max $200 total per day, only allow sends to my labeled addresses, and require my approval for everything else.
+```
+
+## Common controls
+
+- **Per-transaction caps:** the most any single transaction can move.
+- **Daily totals:** a rolling ceiling on what can leave the wallet in 24 hours.
+- **Allow-lists and deny-lists:** addresses, contracts, protocols, or chains the wallet may or may never touch.
+- **Approval thresholds:** which actions can proceed automatically and which must wait for explicit approval.
+- **Simulation requirements:** actions that need a dry run before approval.
+
+## A sane starting posture
+
+Start strict:
+
+- local or test network first;
+- tiny spend caps;
+- short allow-list;
+- approval required for everything;
+- mainnet broadcasting disabled until you deliberately enable it.
+
+Loosen rules only after you understand the plans Bloom produces and are comfortable with the failure modes.
+
+You can always ask:
+
+```txt
+Show me my current wallet policy and explain it to me line by line.
+```
+
+Because policies are represented in files, your agent can inspect and explain them.

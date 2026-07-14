@@ -12,7 +12,7 @@ const siteUrl =
 export default defineConfig({
   title: '/bloom | Documentation',
   description:
-    'Documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.',
+    'Documentation for Bloom users, integrators, and developers: agentic wallets, filesystem-first crypto workflows, and petals.',
   logoUrl: '/logo.svg',
   iconUrl: {
     light: '/favicon-options/bloom-mono-black.svg',
@@ -34,7 +34,19 @@ export default defineConfig({
   sidebar: [
     { text: 'Overview', link: '/' },
     {
-      text: 'Introduction',
+      text: 'Use Bloom',
+      items: [
+        { text: 'Start here', link: '/use-bloom/start-here' },
+        { text: 'Is Bloom for me?', link: '/use-bloom/is-this-for-me' },
+        { text: 'Quickstart', link: '/use-bloom/quickstart' },
+        { text: 'Safety and approvals', link: '/use-bloom/safety-and-approvals' },
+        { text: 'Policies', link: '/use-bloom/policies' },
+        { text: 'Petals for users', link: '/use-bloom/petals-for-users' },
+        { text: 'Chains and FAQ', link: '/use-bloom/chains-and-faq' },
+      ],
+    },
+    {
+      text: 'Product model',
       items: [
         { text: 'What is Bloom?', link: '/introduction/what-is-bloom' },
         { text: 'Benefits', link: '/introduction/benefits' },
@@ -42,14 +54,14 @@ export default defineConfig({
       ],
     },
     {
-      text: 'Getting started',
+      text: 'Integrators',
       items: [
         { text: 'Quickstart', link: '/getting-started/quickstart' },
         { text: 'Agent setup', link: '/getting-started/agent-setup' },
       ],
     },
     {
-      text: 'Agentic wallet',
+      text: 'Wallet reference',
       items: [
         { text: 'Filesystem guide', link: '/wallet/filesystem-guide' },
         { text: 'Wallets and transactions', link: '/wallet/wallets-and-transactions' },
