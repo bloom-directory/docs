@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vocs dev",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && node scripts/check-status-badges.mjs",
     "build": "vocs build && node scripts/copy-markdown-routes.mjs",
     "preview": "vocs preview"
   },
