@@ -23,14 +23,26 @@ async function collectMdxFiles(directory) {
 
 const files = await collectMdxFiles(pagesRoot)
 const errors = []
+let badgedPageCount = 0
+let unbadgedPageCount = 0
 
 for (const file of files) {
   const source = await readFile(file, 'utf8')
   const matches = [
     ...source.matchAll(/:badge\[(Shipped|Partial|Planned)\](?:\{([^}]+)\})?/g),
   ]
-  const page = relative(pagesRoot, file)
+  const page = relative(pagesRoot, file).replaceAll('\\', '/')
+  const expectsBadge = page !== 'index.mdx' && !page.startsWith('use-bloom/')
 
+  if (!expectsBadge) {
+    unbadgedPageCount += 1
+    if (matches.length !== 0) {
+      errors.push(`${page}: homepage and Use Bloom pages must not have status badges`)
+    }
+    continue
+  }
+
+  badgedPageCount += 1
   if (matches.length !== 1) {
     errors.push(`${page}: expected exactly one status badge, found ${matches.length}`)
     continue
@@ -52,5 +64,7 @@ if (errors.length > 0) {
   console.error(errors.join('\n'))
   process.exitCode = 1
 } else {
-  console.log(`Verified status badges on ${files.length} pages.`)
+  console.log(
+    `Verified ${badgedPageCount} badged pages and ${unbadgedPageCount} intentionally unbadged pages.`,
+  )
 }

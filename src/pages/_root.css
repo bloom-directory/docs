@@ -13,6 +13,19 @@
   }
 }
 
+/* Keep implementation status at the far edge of the page-title box. */
+[data-v-content] > h1:has(> [data-v-badge]) {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+[data-v-content] > h1 > [data-v-badge] {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
 .bloom-expected-output {
   display: inline-flex;
   align-items: center;
