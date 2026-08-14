@@ -21,7 +21,6 @@ An agent should then:
 - Read generated plans before asking the user to approve anything.
 - Verify an approval challenge's action ID, exact review, and expiry before opening its `ceremony_url`.
 - Treat unavailable Broker/Signer services, disabled broadcasts, and policy failures as safety signals, not obstacles to bypass.
-- Set `allow_broadcast = false` on public chains unless the user has deliberately chosen to send there.
 
 ## Useful discovery commands
 

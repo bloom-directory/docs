@@ -19,7 +19,7 @@ Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, walle
 /bloom/
   chains/<chain>/...      # live chain state
   wallets/<name>/...      # public wallet state and staged outbox actions
-  petals/<name>/...       # installed protocol and DeFi applications
+  petals/<name>/...       # extensions to walletFS e.g. Hyperliquid, Polymarket, etc.
   watch/<id>/...          # live subscriptions
   simulate/<session>/...  # dry-run calls
   tools/...               # ABI, hashes, units, EIP-712 helpers
@@ -33,6 +33,7 @@ Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, walle
 - inspect a generated `plan.md` before signing;
 - confirm a staged transaction only after user approval;
 - enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging.
+- extend capabilities through Petals (walletFS agent-safe extensions)
 
 The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
 
