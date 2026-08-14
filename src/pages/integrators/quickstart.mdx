@@ -1,48 +1,56 @@
 # Quickstart :badge[Shipped]{success}
 
-This walkthrough uses the mounted `/bloom` filesystem. Bloom’s command-specific fallbacks exist for constrained environments, but normal shell tools against the mount are the default interface.
+This walkthrough uses the mounted `/bloom` filesystem and Bloom's separate-process developer profile. Normal shell tools against the mount are the default interface.
 
 ## Prerequisites
 
 - Rust toolchain, pinned by the Bloom repo.
 - Foundry `anvil` for local devnet transaction tests.
 
-## Build and initialize
+## Build
 
 ```sh
-cargo build -p bloom --all-features
-cargo run -p bloom -- init
+cargo build -p bloom --no-default-features --features mount
 ```
 
-`bloom init` creates the Bloom home directory, writes the default config, and registers read-ready chain defaults. The default mount path is `/bloom`.
+Broker and Signer live in the sibling `bloom-broker` and `bloom-signer` repositories. Production authority is never compiled into Machine.
 
 ## Mount the filesystem
 
-Create the mount directory and start the daemon:
+Start the real Machine, Broker, and Signer protocols as separate processes with the developer launcher:
 
 ```sh
-sudo mkdir -p /bloom
-cargo run -p bloom -- serve --mount /bloom
+mkdir -p ~/.bloom/triad-dev/machine-home /tmp/bloom-triad-mount /tmp/bloom-triad-logs
+scripts/triad-dev-launch.sh \
+  --developer-root ~/.bloom/triad-dev \
+  --machine-home ~/.bloom/triad-dev/machine-home \
+  --mount /tmp/bloom-triad-mount \
+  --machine-socket /tmp/bloom-triad-machine.sock \
+  --log-dir /tmp/bloom-triad-logs \
+  --ready-file /tmp/bloom-triad-ready
 ```
+
+This same-UID profile preserves authenticated triad protocols and genuine passkey ceremonies, but it does not claim production OS-principal isolation.
 
 Then inspect it like any other directory:
 
 ```sh
-ls /bloom/
-cat /bloom/docs/README.md
-ls /bloom/chains
-cat /bloom/chains/ethereum/head/number
-cat /bloom/prices/spot/eth.usd
+cd /tmp/bloom-triad-mount
+ls
+cat docs/README.md
+cat status/daemon.json
+ls chains
+cat chains/ethereum/head/number
 ```
 
-## Create a demo wallet
+## Register a demo wallet
 
 ```sh
-BLOOM_PASSPHRASE=devonly bloom wallet new alice --passphrase devonly
-bloom wallet list
+printf 'alice\n' > wallets/new
+cat wallets/registrations/alice/status.json
 ```
 
-The key is encrypted in the keystore. The filesystem exposes address and public metadata, not private key material.
+Verify `requested_name`, then deliberately open or forward the projected `ceremony_url`. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED` before reading `wallets/alice/address`. Broker owns the ceremony and Signer retains all private key material.
 
 ## Stage a local transaction
 
@@ -50,14 +58,14 @@ With Anvil running on `127.0.0.1:8545`:
 
 ```sh
 echo 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil' \
-  > /bloom/wallets/alice/chains/anvil/outbox/new.tx
+  > wallets/alice/chains/anvil/outbox/new.tx
 ```
 
 Review the pending entry:
 
 ```sh
-ls /bloom/wallets/alice/chains/anvil/outbox/pending
-cat /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
+ls wallets/alice/chains/anvil/outbox/pending
+cat wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
 ```
 
-Confirm only after reading the plan.
+Confirm only after reading the plan. If fresh approval is required, inspect that exact action's `approval_challenge.json`, complete the Broker-hosted ceremony, and retry the same confirm. Browser approval never broadcasts by itself.

@@ -4,28 +4,37 @@
 
 ```sh
 cargo build --workspace
-cargo build -p bloom --all-features
+cargo build -p bloom --no-default-features
+cargo build -p bloom --no-default-features --features mount
 ```
 
-## Run
+`bloom` builds the key-free Machine CLI/runtime. Broker and Signer live in the sibling `bloom-broker` and `bloom-signer` repositories and must be built and tested there. Machine must never connect directly to Signer or compile a local authority fallback.
+
+## Run the separate-process profile
+
+Use the developer launcher documented in [Local build and mount](/integrators/quickstart). It starts real Machine, Broker, and Signer protocol implementations as separate processes and writes public connection settings to its selected log directory.
+
+After sourcing the generated `triad.env` in a second shell, commands such as `bloom status`, `bloom wallet new`, and `bloom vfs` proxy to the running Machine. Only `bloom init` and `bloom serve` own local Machine lifecycle; other commands do not construct a one-shot runtime.
 
 ```sh
-cargo run -p bloom -- status
-cargo run -p bloom -- init
-cargo run -p bloom -- serve
-cargo run -p bloom -- serve --mount "$HOME/bloom"
+source /tmp/bloom-triad-logs/triad.env
+bloom status
+bloom vfs cat /status/daemon.json
+bloom wallet new test-wallet
 ```
 
 ## Test
 
 ```sh
-cargo test --workspace --lib
-scripts/acceptance.sh
-tests/docker/run.sh --workspace
-tests/docker/run.sh --mount
+cargo fmt --all -- --check
+cargo check --workspace --all-targets --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+packaging/triad/release/check-machine-authority-boundary.sh
+packaging/triad/release/test-machine-authority-boundary.sh
 ```
 
-Docker test modes include workspace tests, privileged mount tests, Base fork wallet tests, Enso fork tests, mempool mock tests, and gated live Base tests.
+Run the relevant protocol and transport suites in `bloom-broker` and `bloom-signer` for cross-edge changes. macOS packaging and principal isolation require the disposable Tart/W0 workflow; do not infer production conformance from the same-UID developer launcher.
 
 ## Formatting and linting
 

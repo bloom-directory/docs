@@ -29,7 +29,7 @@ Start strict:
 - tiny spend caps;
 - short allow-list;
 - approval required for everything;
-- mainnet broadcasting disabled until you deliberately enable it.
+- `allow_broadcast = false` on every public chain until you deliberately test it.
 
 Loosen rules only after you understand the plans Bloom produces and are comfortable with the failure modes.
 
@@ -39,4 +39,6 @@ You can always ask:
 Show me my current wallet policy and explain it to me line by line.
 ```
 
-Because policies are represented in files, your agent can inspect and explain them.
+Because policies are represented in files, your agent can inspect and explain them. The writable source is the complete canonical `wallets/<wallet>/policy.json` document; the legacy `policy.toml` view is read-only.
+
+Updating policy is itself a custody operation. Broker validates the exact proposal and presents a `policy_update` ceremony; after you complete it, the client retries the identical bytes and Signer performs an authenticated compare-and-swap. Machine cannot install policy directly.

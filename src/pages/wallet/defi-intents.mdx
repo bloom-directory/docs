@@ -1,33 +1,34 @@
 # DeFi intents :badge[Partial]{warning}
 
-Bloom exposes DeFi routing under `/bloom/defi/intents/<wallet>/`. The current implementation uses Enso Shortcuts.
+DeFi integrations are installed Petals rather than native top-level Machine routes. The default Enso package owns its mounted interface under `/bloom/petals/enso/` and declares its exact route contract inside the installed package.
 
-## Natural-language flow
+## Discover the installed contract
 
 ```sh
-echo 'swap 100 usdc to eth on ethereum' > /bloom/defi/intents/alice/new
-ls /bloom/defi/intents/alice
-cat /bloom/defi/intents/alice/<session>/plan.md
-cat /bloom/defi/intents/alice/<session>/route.json
+cat /bloom/docs/petals.md
+cat /bloom/petals/enso/meta/route-contract.json
+cat /bloom/petals/enso/README.md
 ```
 
-A session may include:
+Do not assume an old `/bloom/defi/intents/` route or a native `bloom-defi` authority path. Installed package documentation is authoritative for its version.
 
-- `intent.txt` — the original request;
-- `route.json` — provider route details;
-- `plan.md` — human-readable plan;
-- `tx.json` — transaction payload;
-- `simulation.json` — dry-run output when available;
-- `confirm` — writable control file to stage into the wallet outbox.
+## Enso intent flow
 
-## Approvals
+The current Enso Petal accepts natural-language or JSON intents at its application mount:
 
-When an ERC-20 input token lacks enough allowance, Bloom stages an `approve(spender, max)` intent before the swap. Both transactions must be reviewed before broadcast.
+```sh
+echo 'swap 100 usdc to eth on base' \
+  > /bloom/petals/enso/intents/alice/new
+ls /bloom/petals/enso/intents/alice
+cat /bloom/petals/enso/intents/alice/<session>/plan.md
+cat /bloom/petals/enso/intents/alice/<session>/simulation.json
+printf 'confirm\n' > /bloom/petals/enso/intents/alice/<session>/confirm
+```
 
-## Configuration
+If an ERC-20 approval is required, the first Petal confirmation stages only the exact-amount approval in the standard wallet outbox. Review and confirm it, wait for a successful receipt, then confirm the Petal session again to simulate and stage the swap.
 
-DeFi intents require an `[enso]` block in `config.toml` and an Enso API key via `BLOOM_ENSO_KEY` or `ENSO_API_KEY`. Without a key, the client returns a clear missing-key error.
+## Authority boundary
 
-## Slippage
+The Petal never receives a wallet private key and cannot contact Broker or Signer directly. It submits complete payload bytes through Machine. Broker checks installed-package provenance, route and operation scope, policy, and Sealed Approval limits; Signer owns any wallet or Petal-scoped delegated key and produces the signature.
 
-Default slippage is 50 bps and can be overridden per request.
+Configuration, route names, slippage behavior, and provider requirements belong to the installed Enso package. Read its mounted `README.md` rather than relying on a floating package version.

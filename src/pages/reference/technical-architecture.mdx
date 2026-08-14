@@ -1,77 +1,73 @@
 # Technical architecture :badge[Partial]{warning}
 
-Bloom is a Rust workspace split into focused crates around a daemon, virtual filesystem, wallet transaction engine, and chain integrations.
+Bloom's filesystem-facing runtime is the **Machine** in a separate-process authority architecture. Machine handles public data and execution, Broker handles policy and authorization, and Signer alone holds keys and signs. See [Triad Architecture](/reference/triad-architecture) for the security protocol and platform isolation model.
 
 ## Runtime shape
 
 ```txt
-agent or user
+agent, shell, or application
     │
     ├─ mounted filesystem: /bloom
-    │     │
-    │     ├─ shell reads:  ls /bloom/chains, cat /bloom/status/daemon.json
-    │     └─ shell writes: echo ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
+    │     ├─ reads:  ls /bloom/chains, cat /bloom/status/daemon.json
+    │     └─ writes: echo ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
     │
     ▼
-bloom daemon
-    │
-    ├─ VFS router and handlers
-    ├─ wallet transaction engine
-    ├─ encrypted keystore and signer
-    ├─ chain RPC pool and Etherscan-backed metadata
-    ├─ DeFi routing via Enso
-    ├─ watch executor
-    └─ audit log and policy enforcement
+Machine (bloom serve)
+    ├─ VFS router and NFS adapter
+    ├─ unsigned transaction construction, simulation, execution, and broadcast
+    ├─ chain RPC, metadata, watches, tools, and installed Petal host
+    ├─ public wallet, policy, approval, audit, and result projections
+    └─ authenticated local RPC ──▶ Broker ──▶ Signer
 ```
 
-`bloom serve --mount /bloom` runs a long-lived daemon and exposes the mounted filesystem. Standard shell reads and writes share daemon state including unlock cache, watches, DeFi sessions, Etherscan cache, and policy/audit state.
+`bloom serve --mount /bloom` owns the long-running Machine. Other CLI commands and the `bloom vfs` facade proxy to that running process; they do not construct a one-shot Machine or embed a custody fallback.
+
+Machine may cache authenticated public projections, but those files are not authority. Wallet keys, credential secrets, approval state, canonical policy custody, and signing remain outside Machine.
 
 ## NFS mount surface
 
-Bloom exposes the VFS over NFS v4.1. The local `/bloom` mount is not a separate API from the VFS router; it is the normal filesystem surface backed by Bloom's daemon, handlers, policy checks, and audit model.
+Bloom exposes the VFS over NFS v4.1. The local mount is the ordinary filesystem surface backed by Machine's router, handlers, planning, and result projections. It supports normal Unix tooling and makes the same path contract available to agents, shells, containers, VMs, and other local processes.
 
-This matters because Bloom should fit into ordinary Unix and infrastructure workflows rather than asking every agent or app to speak a custom CLI protocol. Over time, Bloom expects to rely more on this NFS layer for:
+The mount's OS permissions remain part of the boundary. Production packaging scopes Machine to an enrolled login and places Broker and Signer behind separate authenticated service principals and local transports.
 
-- Unix permission boundaries and familiar file ownership/mode semantics;
-- Docker and hypervisor use cases where `/bloom` can be shared into containers, VMs, or sandboxes as a mounted volume;
-- multi-process workflows where different tools read plans, inspect state, and stage intents through the same mounted tree;
-- safer automation patterns that can be constrained with standard filesystem access controls before Bloom's own policy layer evaluates an action.
+## Main Machine components
 
-This area is still active work. Examples, experiments, and contributions around NFS permissions, container/VM volume sharing, and operational deployment patterns are welcome.
-
-## Core crates
-
-| Crate | Responsibility |
+| Component | Responsibility |
 | --- | --- |
-| `bloom` | CLI binary; thin client and driver for the in-process daemon. |
-| `bloom-daemon` | Wires home dir, config, chains, keystore, VFS, IPC, ENS, and watch executor. |
-| `bloom-vfs` | Path router, handler trait, per-path caching, vendored docs, and handler modules. |
-| `bloom-chain` | RPC pool and per-chain engine for heads, blocks, addresses, and ERC-20 reads. |
-| `bloom-tx` | Stage, simulate, sign, broadcast, nonce management, and policy enforcement. |
-| `bloom-keystore` | Encrypted local key storage and signer. |
-| `bloom-defi` | Enso Shortcuts client and natural-language intent parser. |
-| `bloom-watch` | Subscription registry and polling executor with rotated event logs. |
-| `bloom-mount` | NFSv4 mount adapter behind the mount feature. |
-| `bloom-tools` | Keccak, SHA-256, Blake3, hex, base64, ABI, RLP, units, and EIP-712 helpers. |
-| `bloom-etherscan` | Etherscan v2 multichain client with on-disk TTL cache. |
-| `bloom-ens` | ENS namehash, forward, reverse, text, and contenthash resolution. |
-| `bloom-prices` | DefiLlama keyless price oracle. |
-| `bloom-proto` | Shared types for paths, config, audit, address book, intents, policy, plans, and units. |
-| `bloom-it` | Integration-test harness crate. |
+| `bloom` | CLI and Machine lifecycle; all non-lifecycle commands proxy to the running Machine. |
+| `bloom-daemon` | Wires key-free Machine state, config, chain services, VFS, IPC, ENS, watches, and execution adapters. |
+| `bloom-machine-client` | Authenticated Machine-to-Broker client and rollback-safe public projection cache. |
+| `bloom-vfs` | Path router, handlers, public projections, vendored docs, and mounted action surfaces. |
+| `bloom-tx` | Unsigned transaction staging, simulation, Broker signing orchestration, broadcast, and nonce management. |
+| `bloom-evm` / `bloom-rpc` | EVM chain reads, RPC pools, endpoint health, and failover. |
+| `bloom-petals` | Installed Petal host, package validation, route execution, and payload-bearing signing bridge. |
+| `bloom-paid-http`, `bloom-paid-x402`, `bloom-paid-mpp` | Free and paid HTTP planning and protocol handling. |
+| `bloom-watch` | Subscription registry and polling executor. |
+| `bloom-mount` | NFSv4 adapter that mounts Machine's VFS. |
+| `bloom-tools` | Hashing, encoding, ABI, RLP, unit, and EIP-712 helpers. |
+| `bloom-etherscan`, `bloom-ens`, `bloom-prices` | Indexed metadata, ENS, and price integrations. |
+| `bloom-proto` | Shared public config, audit, intent, policy, plan, path, and protocol types. |
+
+Broker, Signer, and the shared local transport/runtime substrate are independently versioned repositories:
+
+- [`bloom-broker`](https://github.com/bloom-directory/bloom-broker)
+- [`bloom-signer`](https://github.com/bloom-directory/bloom-signer)
+- [`bloom-service-runtime`](https://github.com/bloom-directory/bloom-service-runtime)
 
 ## Data flow for a transaction
 
-1. Agent writes an intent to a wallet outbox path under `/bloom`.
-2. The VFS router dispatches to wallet handlers.
-3. The transaction engine parses the intent and resolves chain, recipient, gas, value, calldata, and nonce defaults.
-4. Simulation and policy checks run.
-5. Bloom writes a pending directory with `intent.json`, `plan.md`, `policy_check.json`, and control files.
-6. User or agent reads the plan.
-7. Confirmation unlocks the signer and broadcasts only if policy still permits it.
-8. The pending entry moves to `sent/` and links to chain transaction paths.
+1. The agent writes an intent to a wallet outbox path.
+2. Machine parses it, resolves public inputs, constructs unsigned bytes, and simulates where possible.
+3. Machine creates a pending directory with the intent, `plan.md`, policy/status projections, and control files.
+4. On confirmation, Machine asks Broker to authorize the exact operation.
+5. If fresh approval is required, Broker returns an action-bound `approval_challenge.json` containing the review identity, expiry, and single-use ceremony URL.
+6. The user completes the Broker-hosted ceremony; Signer independently verifies it. No broadcast occurs in the browser.
+7. The client retries confirmation. Broker evaluates policy and asks Signer to sign the exact payload.
+8. Signer enforces key scope, approval bindings, counters, expiry, revocation, and replay before returning a signature and receipt.
+9. Machine broadcasts when chain routing permits and moves the entry to `sent/` or `failed/`.
 
-## Backend boundaries
+## Backend and failure boundaries
 
-Some surfaces are direct RPC reads. Others use Etherscan v2 where an indexer is required today. The live backend declaration is exposed under `/bloom/status/backends/<feature>` and `/bloom/status/backends/summary.json`.
+Some reads use direct RPC; address history and contract metadata use Etherscan where configured. Current backend declarations are exposed under `/bloom/status/backends/`.
 
-The future `indexer` backend is reserved but intentionally returns a clear not-implemented error today.
+If Broker is unavailable, cached public reads, unsigned staging, and simulation may continue. Signing, approval mutation, policy mutation, and custody fail promptly. Signer unavailability prevents custody and signatures. Neither failure activates a legacy keystore, local approval store, raw hash-signing route, or direct Machine-to-Signer edge.

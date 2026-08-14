@@ -16,11 +16,11 @@ echo alice > /bloom/wallets/new
 
 ## Stage-confirm flow
 
-Bloom does not treat a write as immediate permission to broadcast. A transaction intent becomes a pending entry with a plan and policy check. The user or controlling process must confirm before signing and broadcasting.
+Bloom does not treat a write as immediate permission to broadcast. A transaction intent becomes a pending entry with a plan and policy check. When approval is required, Broker prepares a ceremony and Signer activates bounded authority; the client then retries confirmation as a separate execution step.
 
 ## Policy
 
-Policies live per wallet and enforce caps, recipient rules, contract-call gates, automation thresholds, and private orderflow behavior.
+Policies live per wallet and enforce caps, recipient rules, contract-call gates, automation thresholds, and private orderflow behavior. `policy.json` is the canonical writable document. Broker validates exact updates and Signer commits them through a custody ceremony; Machine cannot edit policy authority directly.
 
 ## Audit log
 

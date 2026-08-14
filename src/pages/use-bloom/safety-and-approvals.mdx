@@ -10,16 +10,19 @@ This is the part to actually read. It is the part that keeps you safe.
 ## How money moves
 
 1. **Your agent stages an intent.** You say "swap 0.05 ETH for USDC." Your agent writes that intention into the outbox. At this point, nothing has happened on-chain.
-2. **Bloom checks the plan against policy.** Spend caps, allow-lists, deny-lists, chain restrictions, and approval rules are enforced outside the agent's sandbox. If the plan violates policy, it stops there.
+2. **Broker checks the plan against policy.** Spend caps, allow-lists, deny-lists, chain restrictions, and approval rules are enforced outside the agent's sandbox and outside Machine. If the plan violates policy, it stops there.
 3. **You read a human-readable plan.** Not a wall of hex: a readable explanation of what will happen, where value moves, and why.
-4. **You approve.** Only after approval does signing happen, using keys the agent has never seen.
-5. **Bloom logs the action.** Meaningful actions are written to audit logs you can inspect later.
+4. **You approve.** Broker hosts the ceremony and Signer independently verifies it. Approval activates bounded authority; it does not broadcast from the browser.
+5. **You confirm execution.** Machine submits the exact payload to Broker, Signer checks the approval bindings and signs, and Machine broadcasts when permitted.
+6. **Bloom logs the action.** Meaningful actions and receipts are written to audit logs you can inspect later.
 
 ## What if my agent gets prompt-injected?
 
 A manipulated agent can try to stage a bad plan. That is the honest risk.
 
-Bloom reduces the blast radius by keeping the private key outside the agent's readable world. A bad plan still has to pass policy and receive approval before it can be signed. That does not make risk zero, but it is much safer than giving an agent unrestricted signing power or secrets in its context window.
+Bloom reduces the blast radius by keeping private keys inside Signer and authorization inside Broker, outside both the agent's readable world and Machine. A bad plan still has to pass policy and receive a matching, bounded approval before Signer will sign it. That does not make risk zero, but it is much safer than giving an agent unrestricted signing power or secrets in its context window.
+
+When a mounted action exposes `approval_challenge.json`, verify its action ID, exact review, and expiry before opening the single-use `ceremony_url`. Ceremony completion and action execution are deliberately separate.
 
 Stay skeptical. Read plans before approving them. Keep caps low.
 

@@ -35,7 +35,7 @@ description: Documentation for Bloom users, integrators, and developers.
 These docs serve three audiences in one place: **users** who want agents to operate crypto safely, **integrators** who want to mount and operate Bloom, and **developers** who want to build on the wallet and petal surfaces.
 
 :::warning
-Bloom walletFS is alpha software. It is experimental and unaudited. Mainnet broadcasting is off by default; start with a local or test network and small amounts.
+Bloom walletFS is alpha software. It is experimental and unaudited. Broadcast routing is enabled by default on configured chains, although policy, approval, and signing gates still apply. Start with a local network, use small amounts, and set `allow_broadcast = false` anywhere you do not intend to send.
 :::
 
 ## I want to use Bloom
@@ -62,7 +62,8 @@ If you are wiring Bloom into an agent environment, local machine or your existin
 
 If you are developing Bloom itself or adding protocol capabilities:
 
-- [Technical architecture](/reference/technical-architecture) — crates, daemon, VFS, policy, and chain integrations.
+- [Technical architecture](/reference/technical-architecture) — crates, Machine runtime, VFS, and chain integrations.
+- [Triad Architecture](/reference/triad-architecture) — Machine, Broker, Signer, custody, and approval boundaries.
 - [Supported chains](/reference/supported-chains) — chain paths and backend expectations.
 - [Project map](/reference/project-map) — repos and source material behind these docs.
 - [Development](/reference/development) — build, run, test, format, and lint.

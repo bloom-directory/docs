@@ -2,8 +2,9 @@
 
 Bloom is useful today, but several boundaries are explicit.
 
-- **Single-user daemon.** There is no daemon-level auth or multi-tenant isolation. The mount inherits OS permissions.
-- **Mainnet broadcast is opt-in.** Live sends require both global and per-chain configuration.
+- **Per-login Machine surface.** Production Broker and Signer use separate authenticated service principals, while the mounted Machine remains scoped to its enrolled login and inherits the mount's OS permissions.
+- **Broadcast routing is enabled by default.** Disable unintended chains explicitly with `allow_broadcast = false`; configuration is not an approval boundary.
+- **macOS release claim is conformance-gated.** The root-requiring Unix-principal profile exists, but production release packaging requires digest-bound disposable-host evidence. The rootless code-identity profile remains future work.
 - **Embedded indexer deferred.** Address activity, token history, and contract metadata use Etherscan-backed surfaces today.
 - **Private orderflow is provider-limited.** Unsupported chains fail closed instead of falling back to public broadcast.
 - **MEV detection is heuristic.** Current checks run at stage time; post-broadcast detection is not v1 behavior.

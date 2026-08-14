@@ -9,17 +9,19 @@ Read https://bloom.directory/SKILL.md and set up Bloom.
 An agent should then:
 
 1. Install or build the `bloom` binary.
-2. Run `bloom init`.
-3. Mount Bloom at `/bloom` or the configured mount path.
+2. Start or verify the separately supervised Machine, Broker, and Signer services for the current platform.
+3. Mount Machine's VFS at `/bloom` or the configured mount path.
 4. Inspect `/bloom/docs/README.md`, `/bloom/status/`, and the top-level tree before taking actions.
 5. Explain what it can do and ask before confirming any transaction.
 
 ## Rules for agents
 
 - Do not write or use custom signing or broadcast code.
+- Never send private keys, passkey output, recovery material, or custody secrets through Machine, the filesystem, command arguments, or agent context. Sensitive input belongs only in a Broker-hosted ceremony.
 - Read generated plans before asking the user to approve anything.
-- Treat missing config, disabled broadcasts, and policy failures as safety signals, not obstacles to bypass.
-- Keep live mainnet and L2 sends opt-in.
+- Verify an approval challenge's action ID, exact review, and expiry before opening its `ceremony_url`.
+- Treat unavailable Broker/Signer services, disabled broadcasts, and policy failures as safety signals, not obstacles to bypass.
+- Set `allow_broadcast = false` on public chains unless the user has deliberately chosen to send there.
 
 ## Useful discovery commands
 

@@ -13,9 +13,10 @@
 - Linea
 - HyperEVM
 - Tempo
+- Robinhood Chain
 - local Anvil
 
-Reads, simulations, and planning work with zero configuration when public RPC defaults are sufficient. Live broadcasts on mainnet and L2 chains are disabled by default and require explicit global and per-chain opt-in.
+Reads, simulations, and planning work with zero configuration when public RPC defaults are sufficient. Per-chain broadcast routing is enabled by default. This does not bypass policy, approval, confirmation, or Signer checks; set `allow_broadcast = false` wherever live sends are not intended.
 
 ## Chain paths
 
@@ -63,7 +64,7 @@ Optional fields:
 
 - `etherscan_api_url` — Etherscan-compatible explorer API base URL for ABI/source/address-history surfaces.
 - `legacy_tx = true` — use legacy `gas_price` transactions instead of EIP-1559 fee fields.
-- `allow_broadcast = true` — permit live sends on this chain. Keep this `false` until the chain is tested and policy is configured.
+- `allow_broadcast = false` — disable live sends on this chain. This is an operator routing control, not a replacement for policy or approval.
 
 After editing config, restart the daemon and verify the mounted paths:
 

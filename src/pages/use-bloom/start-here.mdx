@@ -11,12 +11,12 @@ Instead of giving an agent a pile of Web3 tools or, worse, a seed phrase, Bloom 
 
 - **Reading a file** asks the blockchain a question.
 - **Writing a file** stages a transaction intent. It does not send money.
-- **Approving a plan** is the step that can actually sign and broadcast.
+- **Approving a plan** authorizes bounded signing; confirmation then executes and may broadcast the action.
 
-Your keys are not files in the Bloom filesystem. They live in an encrypted keystore outside the agent's sandbox. The agent can draft work, explain it, and prepare a plan, but signing only happens after the plan passes policy and gets approval.
+Your keys are not files in the Bloom filesystem and are not held by the filesystem-facing Machine process. The separate Signer service retains key material; Broker checks policy, constructs the review, and coordinates approval. The agent can draft work, explain it, and prepare a plan, but only Broker can authorize and only Signer can produce a wallet signature.
 
 :::warning
-Bloom is alpha software. Its current wallet surface, walletFS, is experimental and unaudited. Mainnet broadcasting is off by default; you have to deliberately enable it. Start on a local or test network, use small amounts, and treat the system like early software.
+Bloom is alpha software. Its current wallet surface, walletFS, is experimental and unaudited. Broadcast routing is enabled by default on configured chains, but policy, approval, and signing gates still apply. Start on a local network, use small amounts, and disable broadcast on every chain you are not deliberately testing.
 :::
 
 <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', margin: '1.5rem 0' }}>
@@ -39,6 +39,7 @@ If you are integrating Bloom into an app or building petals, this first section 
 - [Integrating Bloom](/integrators/integrating) for integrators.
 - [Filesystem guide](/wallet/filesystem-guide) for the wallet surface.
 - [Technical architecture](/reference/technical-architecture) for implementation details.
+- [Triad Architecture](/reference/triad-architecture) for the Machine, Broker, and Signer security boundary.
 - [Petals](/petals/overview) for protocol/capability authors.
 
 ## The whole model
