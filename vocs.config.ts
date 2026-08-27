@@ -92,7 +92,7 @@ export default defineConfig({
         { text: 'Quickstart', link: '/petals/quickstart' },
         { text: 'Model', link: '/petals/model' },
         { text: 'Authoring', link: '/petals/authoring' },
-        { text: 'PTBs and pipes', link: '/petals/ptbs-and-pipes' },
+        { text: 'Writes and receipts', link: '/petals/ptbs-and-pipes' },
         { text: 'Testing', link: '/petals/testing' },
       ],
     },
