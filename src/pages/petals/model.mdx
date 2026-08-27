@@ -1,153 +1,248 @@
 # Petal Model :badge[Partial]{warning}
 
-Bloom-native petals are deterministic wasm modules called by the chain executor.
-They are not ordinary off-chain plugins and they do not have ambient access to
-files, sockets, environment variables, or subprocesses.
+A Petal is a package of WebAssembly components mounted into walletFS. This page
+describes the contract those components implement, how Bloom resolves a path to
+a component, and how authority is granted.
 
-## Core Pieces
+## Pieces
 
 | Piece | Meaning |
 | --- | --- |
-| Petal wasm | The compiled module stored by content hash. |
-| Manifest | The `bloom_petal_manifest_v0` custom section emitted by `#[bloom::petal]`. |
-| Path | Human-facing binding such as `/bloom/core/fungible`. |
-| Object | Durable chain resource with an `ObjectId`, `TypeTag`, owner, version, and payload. |
-| Capability | Copyable authority object used to gate privileged functions. |
-| PTB | Programmable transaction block: an atomic plan of petal calls and built-in commands. |
+| Package | A directory with `petal.toml`, `README.md`, `AGENTS.md`, and exactly one route tree under `petal/<name>/`. |
+| Route | One `.wasm` component implementing `bloom:route@0.1.0`, bound to one path in the tree. |
+| Manifest | `petal.toml`: identity, consent summary, capability ceiling, and per-surface policy. |
+| Route metadata | The `route-meta` a component returns from its `metadata` export; the runtime narrowing boundary. |
+| Mount | `petal/<name>/` is served at `/petals/<name>/`. |
+| Package hash | Content hash of the deterministic package, used to pin an install. |
 
-## Objects
+## The route contract
 
-Objects are the durable state model. A petal declares object types with
-`#[bloom::object]`, but petal code works with handles such as
-`Resource<T>`, `Coin<T>`, or `Capability<T>`.
+Every route artifact is a component implementing `bloom:route@0.1.0`. Raw core
+Wasm is rejected. This is the canonical
+[`route.wit`](https://github.com/bloom-directory/petal/blob/main/wit/route/route.wit):
 
-The chain owns the object table. Petals read and mutate objects through host
-imports:
+```wit
+package bloom:route@0.1.0;
 
-- `object.borrow`
-- `object.read`
-- `object.mutate`
-- `object.create`
-- `object.transfer`
-- `object.delete`
+interface types {
+  record ctx {
+    petal-root: string,
+    package-hash: string,
+    path: string,
+    params: list<tuple<string, string>>,
+    actor: option<string>,
+  }
 
-Object payloads use the canonical Bloom codec: fixed-width big-endian integers,
-length-prefixed bytes and strings, raw 32-byte IDs, and recursive `TypeTag`
-encoding.
+  enum entry-kind { dir, file, symlink }
 
-Old-style petal payload codecs are not part of the supported model. Petals
-should not choose their own string widths, hand-pack object fields, or rely on
-field offsets such as "the value starts at byte 32". The manifest-declared type
-schema is the decoder.
+  record entry {
+    name: string,
+    kind: entry-kind,
+    mode: u32,
+    size: option<u64>,
+    link-target: option<string>,
+  }
 
-## Type System
+  record route-meta {
+    kind: entry-kind,
+    mode: u32,
+    cache-ttl-ms: option<u64>,
+    side-effecting-read: bool,
+    write-async: bool,
+    description: option<string>,
+    consent-summary: option<string>,
+    required-caps: list<string>,
+    sign-intent: option<string>,
+    executable: bool,
+  }
 
-Every Bloom value is described by a `TypeTag`. A `TypeTag` identifies the type;
-the structural definition lives in the petal manifest or in the built-in type
-set.
+  variant route-error {
+    not-found(string),
+    not-a-dir(string),
+    denied(string),
+    invalid(string),
+    backend(string),
+    unsupported(string),
+  }
+}
 
-Built-in types use the reserved built-in hash. Their type-argument arities are
-fixed, except `tuple`, whose arity is the number of tuple elements:
+world route-file {
+  use types.{ctx, entry, route-error, route-meta};
 
-| Type | Meaning |
-| --- | --- |
-| `bool`, `u8`, `u16`, `u32`, `u64`, `u128` | scalar values |
-| `Address` / `address`, `ObjectId`, `Hash32`, `UID` | raw 32-byte values |
-| `TypeTag` | canonical recursive type identity |
-| `String` / `string` | UTF-8 text |
-| `bytes` | raw byte sequence |
-| `vector<T>` | ordered sequence |
-| `set<T>` | canonically ordered unique values |
-| `map<K, V>` | canonically ordered key/value entries |
-| `tuple<T0, ...>` | positional product value |
-| `Option<T>` | `None` or `Some(T)` |
-| `Result<T, E>` | `Ok(T)` or `Err(E)` |
+  import bloom:http/fetch@0.1.0;
+  import bloom:store/kv@0.1.0;
+  import bloom:key/derive@0.1.0;
+  import bloom:sign/signing@0.2.0;
+  import bloom:tx/outbox@0.1.0;
+  import bloom:chain/read@0.1.0;
+  import bloom:vfs/readwrite@0.1.0;
+  import bloom:env/runtime@0.1.0;
+  import bloom:private-input/ceremony@0.1.0;
 
-Petal-defined concrete types are declared by `#[bloom::object]`,
-`#[bloom::capability]`, or `#[derive(BloomType)]`. Objects, capabilities, plain
-data structs, and enums all record their fields or variants in the manifest.
-The codec resolves a concrete `TypeTag` by first checking built-ins, then
-looking up the declaration in the defining petal's manifest.
-
-Generic parameters appear as `TypeTag::Generic { idx }` inside a declaration and
-are substituted with the concrete type arguments of the object or function being
-called. `TypeTag::External { ref_idx }` points through the manifest's
-`external_type_refs` table to a type defined by another petal.
-
-Petal-local self references use `petal_hash: [0; 32]` only while macro-emitted
-code is being built. Built-ins never use that sentinel; they use the reserved
-built-in hash. Validator-visible manifests and stored values must resolve self
-references to the defining petal's actual content hash.
-
-## Canonical Value Encoding
-
-Bloom's value codec is schema-driven and non-self-describing: value bytes do not
-carry field names or per-value type tags. The object table, PTB argument slot, or
-return slot supplies the `TypeTag`, and the manifest supplies the structure.
-
-The canonical rules are:
-
-- integers are fixed-width big-endian;
-- `bool` is one byte, `0` or `1`;
-- `Address`, `ObjectId`, `Hash32`, and `UID` are raw 32-byte values;
-- `TypeTag` uses its own canonical recursive type-tag encoding;
-- lengths, collection counts, and enum discriminants use minimal ULEB128;
-- `String` and `bytes` are ULEB128 byte length followed by bytes;
-- structs and tuples concatenate fields in declaration order;
-- `vector<T>` encodes count, then each element;
-- `map<K, V>` and `set<T>` encode count, then entries sorted by each key's
-  canonical encoded bytes, with duplicates rejected;
-- enums encode the zero-based variant index, then the variant payload;
-- `Option<T>` uses `0 = None`, `1 = Some(T)`;
-- `Result<T, E>` uses `0 = Ok(T)`, `1 = Err(E)`.
-
-Decoding is strict. Bloom rejects trailing bytes, non-minimal ULEB128,
-out-of-range enum variants, invalid UTF-8, unsorted or duplicate map/set keys,
-schema cycles, excessive nesting, and values that exceed call-site limits. A
-decode failure is an error, not a request to show opaque hex.
-
-Petals should use `BloomType::canonical_encode`,
-`BloomType::canonical_decode`, and the code generated by `#[bloom::object]`,
-`#[bloom::capability]`, and `#[derive(BloomType)]`. External applications that
-submit PTBs, call view functions, or inspect objects should encode and decode
-against the petal manifest and this canonical codec. They should not recreate
-old `ArgReader`/`RetWriter` layouts or assume special cases such as a 48-byte
-`Coin` payload.
-
-## Ownership And Linearity
-
-A PTB borrow table tracks every object touched by a transaction. It enforces
-access modes and prevents double-use of linear values. This is why a PTB can
-compose several petal calls without copying or losing ownership of resources.
-
-The common access modes are:
-
-- read-only object borrow;
-- mutable object borrow;
-- consume/move object borrow.
-
-Returned objects are represented as object IDs in command outputs so later PTB
-commands can refer to them with `Use` references.
-
-## Capabilities
-
-Capabilities are ordinary objects with special meaning. A function can require a
-capability argument:
-
-```rust
-pub fn mint<T>(
-    _cap: &Capability<MintCap<T>>,
-    supply: &mut Resource<Supply<T>>,
-    amount: u128,
-) -> Coin<T>
+  export metadata: func(ctx: ctx) -> result<route-meta, route-error>;
+  export lookup: func(ctx: ctx) -> result<entry, route-error>;
+  export %list: func(ctx: ctx) -> result<list<entry>, route-error>;
+  export read: func(ctx: ctx) -> result<list<u8>, route-error>;
+  export write: func(ctx: ctx, body: list<u8>) -> result<_, route-error>;
+}
 ```
 
-The runtime checks that the caller holds a matching capability object. This
-keeps privileged actions explicit and composable.
+Return `route-error.unsupported` for operations a route does not implement. A
+normal file route is readable by default; a route that advertises write access
+must export `write`.
 
-## Deterministic Chain VM
+The `bloom-petal-contract` crate embeds this WIT and exposes contract IDs,
+capability mappings, and a deterministic WIT digest. `petal inspect` prints the
+digest your toolchain speaks. Consumer CI should reject a digest it did not
+intentionally upgrade to.
 
-Chain-mode petals run in a deterministic Wasmtime engine with fuel metering,
-bounded memory, no threads, no WASI filesystem, and an allow-list of Bloom host
-imports. Reverts discard the PTB snapshot; successful execution commits the
-write set.
+## Route tree resolution
+
+The route tree on disk *is* the public VFS declaration. Filenames determine
+paths:
+
+| Source file | Route |
+| --- | --- |
+| `status.json.rs` → `status.json.wasm` | the file `/petals/example/status.json` |
+| `$index.rs` → `$index.wasm` | the containing directory (`lookup`, `list`, `read`) |
+| `$lookup.rs` → `$lookup.wasm` | refines `lookup` for dynamic entries |
+| `[wallet]/balance.json.rs` | binds a dynamic `wallet` parameter |
+
+Rules:
+
+- Static segments take precedence over dynamic segments.
+- Reserved `$...` names are only valid as recognized special route leaves.
+  `$list` is not one of them; use `$index`.
+- A bracketed segment such as `[slug]` is read with `petal::param(ctx, "slug")`.
+- Directory contents are explicit. Listing a dynamic directory does not happen
+  automatically — an `$index` route must produce the child list.
+
+A route may also have a sibling `.route.toml` sidecar pointing at a primary
+component under `modules/` or `components/` with dependencies under
+`components/`.
+
+## Authority
+
+Authority is declared in three distinct scopes, and they must agree:
+
+1. **Compiled imports.** What the component actually imports — the hard ceiling.
+2. **Route metadata `required-caps`.** What that one route intends to use at
+   runtime.
+3. **`petal.toml`.** The package-wide ceiling in `[caps].allowed`, plus
+   per-surface policy in `[[net.allow]]`, `[store]`, `[sign]`, and
+   `[[key.derive]]`.
+
+Metadata may narrow installed authority at runtime but may never widen it.
+Bloom grants only the narrowed set, so any omitted host surface must be
+unreachable on the successful path.
+
+Imports map to capabilities as follows:
+
+| WIT import | Manifest capability or policy |
+| --- | --- |
+| `bloom:http/fetch@0.1.0` | `bloom:http` plus `[[net.allow]]` |
+| `bloom:store/kv@0.1.0` | `bloom:store` plus `[store]` namespaces |
+| `bloom:sign/signing@0.2.0` | `bloom:sign` plus `[sign].allowed_intents` |
+| `bloom:key/derive@0.1.0` | `bloom:key.derive`, plus `[[key.derive]]` for delegated operation classes |
+| `bloom:tx/outbox@0.1.0` | `bloom:tx.outbox` |
+| `bloom:chain/read@0.1.0` | `bloom:chain` |
+| `bloom:vfs/readwrite@0.1.0` | `bloom:vfs.read` and/or `bloom:vfs.write`, per the functions used |
+| `bloom:env/runtime@0.1.0` | no additional capability |
+
+Policy structures reject unknown fields. Network paths must be explicit: write
+`"/*"` deliberately rather than relying on an empty list, and never rely on a
+wildcard host. `[[net.allow]]` may also name a configured endpoint with
+`binding = "..."`.
+
+A representative manifest:
+
+```toml title="petal.toml"
+schema = "bloom.petal.package.v1"
+name = "example"
+
+[consent]
+summary = "Read an API and store package-local state."
+
+[caps]
+allowed = ["bloom:http", "bloom:store"]
+
+[[net.allow]]
+host = "api.example.com"
+methods = ["GET"]
+paths = ["/v1/*"]
+
+[store]
+namespaces = ["cache"]
+secret_namespaces = ["credentials"]
+```
+
+### Signing and derived keys
+
+A package declaring `bloom:sign` must list allowed intents, and each signing
+route's metadata must select one of them. The retired hash-only
+`bloom:sign/signing@0.1.0` import is incompatible with production signing and
+fails closed; `bloom:sign/signing@0.2.0` carries the exact payload, an optional
+Signer-owned Petal `KeyRef` selector, and atomic ordered batches.
+
+Child-key operation classes are distinct from the signing intent a route uses
+immediately. Declare each delegated class on the exact route pattern that
+imports `bloom:key/derive@0.1.0`:
+
+```toml
+[[key.derive]]
+route = "[network]/agent_sessions/[wallet]/new.json"
+operation_classes = ["venue.agent_action"]
+```
+
+Every listed class must also appear in `[sign].allowed_intents`. Bloom rejects
+unknown or duplicate routes, empty or duplicate class lists, invalid class
+tokens, and declarations on routes without the key-derivation import. The
+installer records only the route's immediate signing intent and these explicit
+delegated classes; other package-level signing intents are not inherited.
+
+### Secrets
+
+Private keys, derived agent keys, API secrets, bearer tokens, secret-store
+values, and replayable or not-yet-submitted signatures are confidential. Keep
+them in the store's secret namespace and never copy their bytes into the public
+state namespace, errors, logs, or a read response. Treat signature bytes as
+confidential unless the product contract explicitly classifies a finalized
+signature as public.
+
+## Validator boundaries
+
+Different tools check different things, and none of them checks everything:
+
+- `petal build`, `petal check`, and `petal package` reject a capability
+  declared by a route spec that the compiled component does not import, and
+  reject unknown component imports.
+- `petal package` validates only basic `petal.toml` identity. It does not prove
+  the complete manifest policy covers compiled imports.
+- `bloom petals build` and install validation reject compiled imports not
+  covered by `[caps].allowed` and the applicable network, signing, and store
+  policy, and enforce route metadata as a runtime narrowing boundary.
+- The Petal CLI treats a VFS interface import as both VFS capabilities when
+  checking a route's declared ceiling; Bloom's package validator performs the
+  finer used-function inference. Confirm final policy with Bloom rather than
+  inferring it from the interface name.
+
+## GitHub source packages
+
+A source repository may declare a build:
+
+```toml
+[source]
+kind = "github"
+repository = "bloom-directory/bloom-petal-example"
+
+[build]
+command = "./scripts/build-package"
+outputs = ["artifacts/routes"]
+```
+
+Bloom executes that command natively with the installing user's privileges.
+Publishing under a trusted owner is therefore an assertion about the
+repository's source, build script, and dependencies — not only the resulting
+Wasm. Keep builds non-interactive and reproducible, minimize dependencies, and
+test installation by tag and by immutable commit. Bloom records the resolved
+commit but does not sandbox the source build in this iteration.
