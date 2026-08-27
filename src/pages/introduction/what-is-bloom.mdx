@@ -18,25 +18,24 @@ Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, walle
 ```txt
 /bloom/
   chains/<chain>/...      # live chain state
-  wallets/<name>/...      # wallet state, outbox, signatures
-  defi/intents/...        # routed DeFi plans
+  wallets/<name>/...      # public wallet state and staged outbox actions
+  petals/<name>/...       # extensions to walletFS e.g. Hyperliquid, Polymarket, etc.
   watch/<id>/...          # live subscriptions
   simulate/<session>/...  # dry-run calls
   tools/...               # ABI, hashes, units, EIP-712 helpers
-  petals/...              # Petals (walletFS extensions)
 ```
 
 ## Current walletFS state
 
 - read live EVM state as files: balances, blocks, gas, contracts, ABI methods, storage, events, NFTs, ENS, token prices, and address history;
-- create or import encrypted wallets without exposing private keys through the filesystem;
+- register or import wallets through Broker-hosted custody ceremonies while Signer retains private keys;
 - stage ETH, ERC-20, NFT, contract-call, signing, and DeFi intents by writing plain-language or structured files;
 - inspect a generated `plan.md` before signing;
 - confirm a staged transaction only after user approval;
 - enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging.
+- extend capabilities through Petals (walletFS agent-safe extensions)
 
-On the filesystem this looks like:
-The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes are transaction intents. Nothing moves until a policy-checked plan is approved and signed outside the agent sandbox.
+The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
 
 ## Broader direction
 
@@ -44,4 +43,4 @@ Bloom’s broader architecture extends this filesystem model to small, composabl
 
 ## Status
 
-The current Bloom implementation is a Rust workspace with a CLI, daemon, in-process VFS, wallet transaction engine, encrypted keystore, chain readers, DeFi routing, and an optional NFSv4 mount adapter. Live reads and local development flows work out of the box. Live mainnet and L2 broadcasts are intentionally opt-in.
+The current Bloom implementation uses the separate-process [Triad Architecture](/reference/triad-architecture): a key-free Machine runtime, a Broker authorization service, and a Signer custody service. The Machine workspace contains the CLI, VFS, transaction staging, chain readers, Petal host, and optional NFSv4 mount adapter. Broadcast routing is enabled by default on configured chains, while policy, approval, and signing remain mandatory safety boundaries.

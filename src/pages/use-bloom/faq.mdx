@@ -9,7 +9,7 @@ description: Supported chains, cost, keys, existing wallets, and where Bloom is 
 
 Bloom's current wallet surface targets EVM-compatible chains: if a chain speaks standard Ethereum RPC, Bloom can model it through the wallet filesystem.
 
-The current docs cover Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, Tempo, and a local Anvil dev chain for consequence-free experiments.
+The current docs cover Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, and a local Anvil dev chain for consequence-free experiments.
 
 Solana and Canton are planned surfaces, not shipped user paths today.
 
@@ -27,13 +27,13 @@ Bloom is free, open-source software that runs on your machine. You pay normal bl
 
 ## Where are my keys?
 
-In an encrypted keystore on your own machine, outside the agent's sandbox. They are not represented as files the agent can read, they should not enter the agent's context window, and Bloom does not custody them on a server.
+In the separate Signer service on your own machine (or in a configured custody backend). Machine, the mounted filesystem, Petals, and your agent receive public key references and signatures, not private keys. Secret import or recovery input belongs only in a Broker-hosted custody ceremony and should never enter the agent's context window.
 
 Bloom is self-custodial: you hold your keys on your machine. Not Bloom. Not an exchange. That also means there is no company that can recover a deleted backup for you, so back up keys before treating any wallet as important.
 
 ## Can I use the wallet I already have?
 
-Bloom creates and manages its own wallets today. A safe first path is to fund a Bloom-managed wallet from an existing wallet with a small amount while you test. Integrations with existing wallet and custody providers are a future direction, not the default starting point.
+Bloom creates and manages its own wallets today through Broker-hosted registration or import ceremonies completed by Signer. A safe first path is to register a fresh Bloom wallet and fund it with a small amount while you test. Do not paste an existing wallet's private key into a file, shell command, or agent prompt.
 
 ## My agent seems confused. What should I do?
 

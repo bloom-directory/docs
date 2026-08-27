@@ -1,22 +1,25 @@
 # Filesystem guide :badge[Partial]{warning}
 
-Bloom’s VFS is normally mounted at `/bloom`. Use standard shell tools against that mount: reads are `cat`/`ls`, writes are file writes.
+Bloom's Machine VFS is normally mounted at `/bloom`. Use standard shell tools against that mount: reads are `cat`/`ls`, and writes stage actions or configuration proposals.
 
 ## Top-level layout
 
 | Path | Purpose |
 | --- | --- |
 | `/bloom/chains/<chain>/` | Chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
-| `/bloom/wallets/<name>/` | Managed wallets, balances, nonce, outbox, and signing surfaces. |
-| `/bloom/defi/intents/<wallet>/` | Natural-language and structured DeFi routing through Enso. |
+| `/bloom/wallets/` | Broker-projected wallets, passkey registrations, canonical policy custody, Sealed Approvals, balances, nonce, and staged outbox actions. |
+| `/bloom/petals/<name>/` | Installed applications such as Enso, with package-defined routes and capabilities. |
+| `/bloom/requests/` | Free and paid HTTP requests with staged review and confirmation. |
 | `/bloom/watch/<id>/` | Polling subscriptions for balances, blocks, gas, and events. |
 | `/bloom/simulate/<session>/` | `eth_call` and state-override sandboxes without signing or broadcast. |
 | `/bloom/tools/` | Hashes, ABI, RLP, base64, hex, units, EIP-712, and address helpers. |
 | `/bloom/prices/` | DefiLlama spot prices and 24h changes. |
 | `/bloom/addressbook/` | Local petname directory. |
-| `/bloom/ens/` | ENS forward resolution. |
-| `/bloom/status/` | Daemon health, backend declarations, audit state, cache counts, and policy flags. |
+| `/bloom/ens/` | ENS resolution. |
+| `/bloom/status/` | Machine health, backend declarations, audit state, cache counts, and public authority projections. |
 | `/bloom/docs/` | In-tree operational docs vendored into the VFS. |
+
+Wallet keys and authority do not live in this tree. Machine projects public state from Broker and sends exact payloads through Broker to Signer when signing is authorized.
 
 ## Read examples
 
@@ -25,16 +28,20 @@ cat /bloom/chains/base/head/number
 cat /bloom/chains/ethereum/gas
 cat /bloom/chains/ethereum/contracts/<address>/abi
 cat /bloom/prices/spot/eth.usd
-cat /bloom/ens/vitalik.eth
+cat /bloom/ens/vitalik.eth/address
+cat /bloom/status/daemon.json
 ```
 
 ## Write examples
 
 ```sh
-echo alice > /bloom/wallets/new
-echo 0x... > /bloom/addressbook/treasury
+# Start asynchronous passkey registration, then inspect the exact projection.
+printf 'alice\n' > /bloom/wallets/new
+cat /bloom/wallets/registrations/alice/status.json
+
+# Stage a transaction; this does not sign or send it.
 echo 'send 0.01 eth to 0x... on anvil' \
   > /bloom/wallets/alice/chains/anvil/outbox/new.tx
 ```
 
-Every write surface should produce inspectable state rather than surprising side effects.
+Verify a registration's `requested_name` before opening its `ceremony_url`. For transaction approval, read the concrete action's plan and `approval_challenge.json`; browser completion activates approval but execution requires a separate confirm retry.

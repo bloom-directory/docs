@@ -1,32 +1,45 @@
-# Security model :badge[Shipped]{success}
+# Security model :badge[Partial]{warning}
 
-Bloom is built around explicit control points between an agent and user funds.
+Bloom separates staging, authorization, and custody instead of trusting one agent-facing process with all three.
 
-## Defaults
+## Triad boundaries
 
-- Mainnet and L2 broadcasts are disabled by default.
-- Private keys are never readable through the filesystem.
-- Keys are encrypted at rest with argon2id and chacha20poly1305.
+- **Machine is key-free.** It owns the mounted VFS, public reads and projections, unsigned staging, simulation, Petal execution, and broadcast.
+- **Broker owns authorization.** It evaluates canonical policy, constructs exact reviews, hosts ceremonies, manages Sealed Approvals, and is Machine's only authority peer.
+- **Signer owns custody.** It retains wallet and delegated keys, credentials, canonical policy snapshots, counters, replay state, and signature creation.
+- Machine never connects directly to Signer. Broker or Signer failure cannot restore a Machine-local key, approval store, raw hash signer, or authority fallback.
+
+## Operational defaults
+
+- Private keys and passkey output are never readable through the mounted filesystem or Machine.
 - Transaction writes create pending plans, not immediate broadcasts.
-- Policy runs before signing.
-- Side-effecting operations are appended to a hash-chained audit log.
+- Per-chain broadcast routing is enabled by default, but it does not bypass policy, approval, confirmation, or Signer checks. Set `allow_broadcast = false` wherever sends are not intended.
+- Side-effecting operations and authority decisions produce hash-chained, signed, or receipt-bound audit evidence.
 
 ## Policy controls
 
-Per-wallet `policy.toml` can enforce:
+The complete canonical `wallets/<wallet>/policy.json` can enforce:
 
-- max ETH per transaction;
-- max USD per transaction;
-- rolling 24h USD totals;
-- recipient allow and deny lists;
-- contract-call gates;
-- automation thresholds;
+- per-transaction and rolling value limits;
+- recipient, contract, protocol, Petal, and chain constraints;
+- approval requirements and validity windows;
+- operation and signature budgets;
 - private orderflow requirements.
+
+Policy updates are custody operations. Broker validates the exact proposal and review, the user completes a `policy_update` ceremony, and Signer performs an authenticated compare-and-swap.
+
+## Sealed Approvals
+
+A Sealed Approval activates bounded signing authority; it is not a browser-triggered execution. Exact approvals bind the precise payload or ordered batch. Reusable Petal approvals additionally bind installer-pinned package and route scope, allowed operation classes and suites, limits, policy, expiry, revocation, and replay state.
+
+Machine displays public approval projections, but modifying or deleting those projections cannot authorize a signature.
 
 ## Private orderflow
 
-When `private = true` is configured for a wallet policy, broadcasts route through a configured private RPC provider such as MEV-Blocker or Flashbots Protect on supported chains. Unsupported chains return an explicit error rather than silently falling back to public broadcast.
+When private orderflow is required by wallet policy, broadcasts route through a configured provider such as MEV-Blocker or Flashbots Protect on supported chains. Unsupported chains fail closed instead of silently falling back to public broadcast.
 
-## Threat boundary
+## OS and release boundary
 
-Bloom does not make a local machine multi-tenant safe. The daemon is currently single-user and inherits the OS permissions around the Bloom home and mount point. Use OS isolation for separate users or untrusted agents.
+Production packaging scopes Machine to an enrolled login and runs Broker and Signer behind authenticated local transports and separate OS principals. Linux uses non-transitive Unix groups and principal-private state roots. The root-requiring macOS Unix-principal profile remains gated on digest-bound disposable-host conformance evidence; the rootless macOS profile is future work.
+
+These boundaries do not protect against an administrator or root-equivalent attacker that can replace binaries, service configuration, or protected state. Bloom is still experimental and unaudited; start locally and keep limits low.

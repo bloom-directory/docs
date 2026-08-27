@@ -1,48 +1,74 @@
-# Wallets and transactions :badge[Shipped]{success}
+# Wallets and transactions :badge[Partial]{warning}
 
-Bloom wallets are local encrypted keys or watch-only addresses exposed through the filesystem.
+Bloom wallets are Broker-projected public identities whose private keys remain in Signer. Machine exposes addresses, policies, approvals, and outbox state through the filesystem, but it does not create or open a local keystore.
 
-## Create or import
+## Register a wallet
 
-Plain text creates a local wallet:
+Writing a petname starts an asynchronous Broker custody operation:
 
 ```sh
-echo alice > /bloom/wallets/new
+printf 'alice\n' > /bloom/wallets/new
+cat /bloom/wallets/registrations/alice/status.json
 ```
 
-TOML supports explicit forms:
+Verify that `requested_name` is `alice` before opening its single-use `ceremony_url`, polling it, or cancelling it. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED`, then inspect the public projection:
 
-```toml
-name = "alice"
-kind = "import"        # local | import | watch
-private_key = "0x..."  # required for import
-address = "0x..."      # required for watch
-passphrase = "..."     # optional; falls back to BLOOM_PASSPHRASE
+```sh
+cat /bloom/wallets/alice/address
+cat /bloom/wallets/alice/public_key
+cat /bloom/wallets/alice/policy.json
 ```
+
+Cancel a live registration by writing `cancel` to `/bloom/wallets/registrations/alice/cancel`.
+
+Import, recovery, credential changes, and deletion also use Broker-hosted custody ceremonies. Never put a private key, passkey output, or recovery secret in a mounted file, command argument, environment variable, or agent prompt.
 
 ## Stage an intent
-
-Write to the wallet outbox:
 
 ```sh
 echo 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil' \
   > /bloom/wallets/alice/chains/anvil/outbox/new.tx
 ```
 
-Bloom parses the intent, fills defaults, simulates where possible, runs policy checks, and creates a pending directory.
+Machine parses the intent, fills public defaults, simulates where possible, and creates a pending directory.
 
-## Review and confirm
+## Review, approve, and confirm
 
 ```sh
 ls /bloom/wallets/alice/chains/anvil/outbox/pending
 cat /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
 cat /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/policy_check.json
+printf 'confirm\n' > /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/confirm
 ```
 
-When running the long-lived daemon, confirm by writing non-empty content to `confirm`. For one-shot CLI flows, `bloom wallet confirm` unlocks and broadcasts in one command.
+If Broker requires fresh owner approval, the confirm fails closed after projecting `approval_challenge.json`. Read it from that exact action, verify the action ID, review digest, and expiry, then deliberately open or forward its `ceremony_url`.
+
+After the ceremony completes, retry the same confirm. Broker authorizes the exact payload, Signer checks the approval bindings and signs, and Machine broadcasts when permitted. Browser completion never broadcasts by itself.
+
+Successful entries move to `outbox/sent/<id>/`; terminal failures are projected under `outbox/failed/<id>/`.
+
+## Policy updates
+
+`/bloom/wallets/<wallet>/policy.json` is the complete canonical writable policy. Preserve the exact proposal bytes across the ceremony:
 
 ```sh
-bloom wallet confirm alice anvil <id> --passphrase devonly --text y
+cat /bloom/wallets/alice/policy.json > proposed-policy.json
+# Edit the complete JSON document.
+cp proposed-policy.json /bloom/wallets/alice/policy.json
+cat /bloom/wallets/alice/policy-updates/latest/status.json
+cat /bloom/wallets/alice/policy-updates/latest/approval_challenge.json
+# Complete the policy_update custody ceremony, then retry identical bytes.
+cp proposed-policy.json /bloom/wallets/alice/policy.json
 ```
 
-After broadcast, entries move to `outbox/sent/<id>/` with the transaction hash.
+Broker validates the proposal and exact review; Signer commits it with an authenticated compare-and-swap only after the custody receipt is complete.
+
+## Reusable authority
+
+Sealed Approvals are durable, bounded Broker/Signer authority. Public preparation, status, limits, renewal, and revocation projections live under:
+
+```txt
+/bloom/wallets/<wallet>/sealed-approvals/
+```
+
+An approval binds a key, exact payload or installer-pinned Petal scope, allowed operations and suites, limits, policy, expiry, and revocation. Machine's projection is not itself authority.

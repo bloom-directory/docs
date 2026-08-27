@@ -1,58 +1,52 @@
 # Project map :badge[Partial]{warning}
 
-This map connects public docs concepts to the Bloom source files that currently implement them.
+This map connects public docs concepts to the source that implements the current triad runtime.
 
-## Agentic wallet and VFS
+## Machine, wallet, and VFS
 
-| Concept | Source files |
+| Concept | Source |
 | --- | --- |
-| CLI entrypoint and VFS commands | `crates/bloom/src/` |
-| Daemon wiring, home directory, config, IPC, ENS, and watches | `crates/bloom-daemon/src/` |
+| CLI, Machine lifecycle, and IPC clients | `crates/bloom/src/` |
+| Machine binary | `crates/bloom-machine/src/` |
+| Machine-to-Broker protocol client and projection cache | `crates/bloom-machine-client/src/` |
+| Key-free daemon wiring and execution adapters | `crates/bloom-daemon/src/` |
 | Virtual filesystem router and handlers | `crates/bloom-vfs/src/` |
 | Vendored in-filesystem docs | `crates/bloom-vfs/src/docs/` |
-| Wallet transaction staging, simulation, signing, broadcast, and nonce management | `crates/bloom-tx/src/` |
-| Encrypted wallet keys and signing | `crates/bloom-keystore/src/` |
-| Chain heads, blocks, addresses, token reads, and RPC pool | `crates/bloom-chain/src/` |
-| Enso-backed DeFi intents | `crates/bloom-defi/src/` |
+| Unsigned transaction staging, simulation, signing orchestration, broadcast, and nonce management | `crates/bloom-tx/src/` |
+| EVM chain engines and RPC pools | `crates/bloom-evm/src/`, `crates/bloom-rpc/src/` |
+| Paid HTTP, x402, and MPP | `crates/bloom-paid-http/src/`, `crates/bloom-paid-x402/src/`, `crates/bloom-paid-mpp/src/` |
 | Watch subscriptions and polling executor | `crates/bloom-watch/src/` |
 | NFS mount adapter | `crates/bloom-mount/src/` |
-| ENS utilities | `crates/bloom-ens/src/` |
-| Etherscan v2 multichain metadata/cache | `crates/bloom-etherscan/src/` |
-| DefiLlama price oracle | `crates/bloom-prices/src/` |
+| ENS, Etherscan metadata, and prices | `crates/bloom-ens/src/`, `crates/bloom-etherscan/src/`, `crates/bloom-prices/src/` |
 | Hashing, ABI, RLP, units, and EIP-712 helpers | `crates/bloom-tools/src/` |
-| Shared config, audit, policy, address-book, path, and intent types | `crates/bloom-proto/src/` |
+| Shared config, audit, intent, policy, plan, path, and protocol types | `crates/bloom-proto/src/` |
 
-## Petals and programmable calls
+There is no Machine-local `bloom-keystore` or `bloom-auth` authority crate in the production graph.
 
-| Concept | Source files |
+## Authority services
+
+| Responsibility | Repository |
 | --- | --- |
-| Petal macro | `crates/bloom-resource-macros/src/petal.rs` |
-| Object macro | `crates/bloom-resource-macros/src/object.rs` |
-| Capability macro | `crates/bloom-resource-macros/src/capability.rs` |
-| Guest runtime | `crates/bloom-resource/src/lib.rs` |
-| Host wrappers | `crates/bloom-resource/src/host.rs` |
-| Guest `BloomType` runtime | `crates/bloom-resource/src/resource.rs` |
-| Canonical value codec | `crates/bloom-value/src/lib.rs` |
-| Args/return ABI envelope | `crates/bloom-resource/src/abi.rs` |
-| Manifest schema | `crates/bloom-petal-manifest/src/types.rs` |
-| Manifest extraction | `crates/bloom-petal-manifest/src/extract.rs` |
-| Object model | `crates/bloom-objects/src/` |
-| PTB wire types | `crates/bloom-script/src/types.rs` |
-| PTB validation | `crates/bloom-script/src/validator.rs` |
-| Manifest-driven value validation | `crates/bloom-script/src/value_validation.rs` |
-| PTB execution | `crates/bloom-script/src/executor.rs` |
-| Pipe builder | `crates/bloom-ptb-builder/src/` |
-| CLI pipe | `crates/bloom/src/commands/pipe.rs` |
-| VFS tx sessions | `crates/bloom-vfs/src/tx_handler.rs` |
-| Chain VM | `crates/bloom-petals/src/chain_vm.rs` |
-| Chain deploy/submit | `crates/bloom-chain-node/src/petal_executor.rs` |
-| Minimal generic petal | `examples/petal-identity/src/lib.rs` |
-| Standard fungible petal | `crates/bloom-petal-fungible/src/lib.rs` |
-| Capability example | `examples/petal-cap/src/lib.rs` |
-| DEX example | `examples/petal-dex/` |
+| Policy, exact reviews, Sealed Approvals, ceremony HTTP, authorization, and Machine-facing authority RPC | [`bloom-directory/bloom-broker`](https://github.com/bloom-directory/bloom-broker) |
+| Wallet/delegated keys, credentials, canonical policy custody, replay/counter enforcement, and signatures | [`bloom-directory/bloom-signer`](https://github.com/bloom-directory/bloom-signer) |
+| Versioned RPC wire, authenticated local transport, activation, trusted time, and audit-checkpoint substrate | [`bloom-directory/bloom-service-runtime`](https://github.com/bloom-directory/bloom-service-runtime) |
 
-## Source repos used for these docs
+Machine never connects directly to Signer.
 
-- `bloom` on `feat/wallet-prep` for product behavior, wallet/VFS surfaces, architecture, and developer commands.
-- the pre-existing `docs` repo for Petals docs, the project map, custom domain, and public assets.
-- `pitch` and `website` for positioning language and Cloudflare Worker deployment conventions.
+## Petal packages and runtime
+
+| Concept | Source |
+| --- | --- |
+| Installed package validation, route execution, host capabilities, and payload-bearing signing bridge | `crates/bloom-petals/src/` |
+| Petal ABI and host interfaces | `crates/bloom-petals/src/abi.rs`, `crates/bloom-petals/src/host.rs` |
+| Package/provenance handling | `crates/bloom-petals/src/package.rs`, `crates/bloom-petals/src/store.rs` |
+| WASM runtime | `crates/bloom-petals/src/vm.rs` |
+| Default package release/build tooling | [`bloom-directory/petal`](https://github.com/bloom-directory/petal) and each Petal repository |
+
+Venue-specific applications such as Enso, Polymarket, and Hyperliquid live in installed Petal packages rather than native Machine authority paths.
+
+## Packaging and architecture sources
+
+- Triad protocol and acceptance contract: `docs/specs/2026-07-23-triad-process-architecture.md` in the `bloom` repository.
+- Linux and macOS service sources: `packaging/triad/` in the `bloom` repository.
+- Public overview: [Triad Architecture](/reference/triad-architecture).

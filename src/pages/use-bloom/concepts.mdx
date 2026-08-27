@@ -13,6 +13,10 @@ You do not need to memorize these before using Bloom. You will pick them up by a
 | Plan | A draft transaction written in readable language: what will happen, where value moves, and why. A plan does not move money by itself. |
 | Outbox | The folder where staged plans wait. Think of it as your wallet's drafts folder. Nothing should leave the outbox without passing policy and approval. |
 | Policy | Your wallet's rulebook: spend caps, allow-lists, deny-lists, approval requirements, and other limits the agent cannot simply talk its way around. |
+| Machine | The filesystem-facing runtime. It reads, stages, simulates, executes, and displays results, but holds no wallet keys or approval authority. |
+| Broker | The policy and authorization service. It constructs reviews, hosts ceremonies, and is Machine's only authority peer. |
+| Signer | The custody service. It owns wallet and delegated keys and is the only process that produces wallet-controlled signatures. |
+| Sealed Approval | Bounded signing authority tied to an exact payload or tightly scoped Petal use, limits, policy, and expiry. It is not a custody change and does not broadcast by itself. |
 | Petal | A capability extension that teaches Bloom how to work with a protocol or workflow, such as Polymarket, Hyperliquid, or agent-to-agent payments. |
 
 ## Self-custodial

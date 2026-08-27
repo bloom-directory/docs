@@ -78,6 +78,7 @@ export default defineConfig({
       text: 'Reference',
       items: [
         { text: 'Technical architecture', link: '/reference/technical-architecture' },
+        { text: 'Triad Architecture', link: '/reference/triad-architecture' },
         { text: 'Supported chains', link: '/reference/supported-chains' },
         { text: 'Project map', link: '/reference/project-map' },
         { text: 'Development', link: '/reference/development' },

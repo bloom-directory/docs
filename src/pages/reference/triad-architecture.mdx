@@ -1,0 +1,81 @@
+# Triad Architecture :badge[Partial]{warning}
+
+Bloom separates wallet authority across three processes so the filesystem-facing runtime never holds keys or grants itself permission to sign.
+
+```text
+agent, shell, or application
+           │
+           ▼
+        Machine ──authenticated local RPC──▶ Broker ──authenticated local RPC──▶ Signer
+   stage, simulate,                     policy, review,                    custody,
+   execute, project                    approval, ceremony                 signing
+```
+
+## Responsibilities
+
+| Process | Owns | Must not own |
+| --- | --- | --- |
+| **Machine** | Mounted VFS, public chain reads, unsigned construction, simulation, Petal execution, broadcast, and public status/result projections. | Wallet keys, credential secrets, approval authority, a decrypted-key cache, or a direct Signer connection. |
+| **Broker** | Policy evaluation, exact human-readable reviews, Sealed Approval lifecycle, custody ceremonies, authorization budgets, and the browser ceremony application. | Wallet private keys or a way to sign without Signer. |
+| **Signer** | Wallet and delegated keys, credential records, canonical policy snapshots, replay/counter enforcement, and signature creation. | Agent-facing filesystem or application semantics. |
+
+Machine talks to Broker only. Broker is the only process allowed to ask Signer for a wallet-controlled signature.
+
+The protocol and release edges are versioned independently. The implementations live in [`bloom`](https://github.com/bloom-directory/bloom), [`bloom-broker`](https://github.com/bloom-directory/bloom-broker), and [`bloom-signer`](https://github.com/bloom-directory/bloom-signer), with shared transport/runtime code in [`bloom-service-runtime`](https://github.com/bloom-directory/bloom-service-runtime).
+
+## Transaction flow
+
+1. An agent writes an intent to Machine's mounted outbox.
+2. Machine constructs unsigned bytes, simulates the action, and exposes `plan.md` plus policy/status projections.
+3. When fresh approval is required, Machine asks Broker to prepare it.
+4. Broker checks policy and provenance, constructs the exact review, and returns a single-use `ceremony_url`.
+5. The user completes the Broker-hosted ceremony. Signer independently verifies the ceremony contribution and activates the approval.
+6. The client retries confirmation. Machine sends Broker the exact payload and operation identity.
+7. Broker authorizes the operation and sends Signer a short-lived, signed request.
+8. Signer checks key scope, approval bindings, counters, expiry, revocation, and replay before signing.
+9. Machine receives only the public signature and receipts, broadcasts when permitted, and projects the result.
+
+Completing a browser ceremony activates approval; it does not execute or broadcast the action. Execution is a separate operation.
+
+## Sealed Approvals and custody ceremonies
+
+A **Sealed Approval** authorizes bounded use of an existing wallet-controlled key. It binds the wallet and key reference, exact payload or installer-pinned Petal scope, allowed operation classes and signature suites, limits, policy version, expiry, and revocation state.
+
+Wallet registration, import, recovery, credential changes, key derivation, deletion, and policy updates are **custody operations**, not Sealed Approvals. They use the shared Broker-hosted ceremony framework and produce custody receipts that Signer verifies.
+
+Policy changes use the complete canonical `wallets/<wallet>/policy.json` document:
+
+1. Machine sends the exact proposal to Broker's `policy.validate_update` flow.
+2. Broker validates it against the Signer-authenticated baseline and starts a `policy_update` custody ceremony.
+3. After completion, the same proposal bytes are retried.
+4. Broker commits with the custody receipt and Signer performs an authenticated compare-and-swap.
+
+Machine has no direct policy writer.
+
+## Public projections are not authority
+
+Wallet addresses, public keys, credential summaries, policy snapshots, approval status, ceremony launch details, and results are exposed through Machine as authenticated public projections. Changing or deleting a Machine-side projection cannot authorize a signature.
+
+A mounted workflow may expose a short-lived `ceremony_url` in an action's `approval_challenge.json`. Verify the action ID, review digest, and expiry before opening it. Machine clears the URL after completion, cancellation, failure, or expiry.
+
+## Degraded and fail-closed behavior
+
+If Broker is unavailable, Machine may continue cached public reads, unsigned staging, and simulation when their inputs are available. Signing, approval mutation, policy mutation, and custody fail promptly.
+
+If Signer is unavailable, Broker cannot complete custody or produce signatures. Neither failure restores an embedded keystore, local approval database, raw hash-signing route, or direct Machine-to-Signer path.
+
+## Petal signing
+
+Petals submit complete payload bytes through Machine. They cannot contact Broker or Signer directly and never receive wallet private keys.
+
+A Petal that needs a delegated identity receives a public, Petal-scoped `KeyRef`; Signer retains the private sub-key. Every use still requires a matching Sealed Approval and is checked against installer-pinned package, route, operation, suite, limits, policy, and replay state.
+
+## Operating-system isolation and release status
+
+Production packaging places Machine, Broker, and Signer behind authenticated local transports and distinct OS boundaries:
+
+- Linux uses a per-login Machine plus separate Broker and Signer service principals, non-transitive Unix groups, principal-private state roots, and narrowly scoped sockets.
+- The root-requiring macOS Unix-principal profile uses hidden service accounts, LaunchDaemons, authenticated Unix RPC, and UID-scoped network containment.
+- The rootless macOS code-identity/App-Group profile remains a future architecture and is not a production claim.
+
+The macOS Unix-principal release claim remains gated on digest-bound disposable-host conformance evidence. Treat the triad protocol and key-free Machine boundary as implemented while checking release notes for platform-package availability.
