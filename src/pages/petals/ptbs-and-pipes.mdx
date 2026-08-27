@@ -1,266 +1,156 @@
-# PTBs And Pipes :badge[Partial]{warning}
+# Writes And Receipts :badge[Partial]{warning}
 
-Petals are called through programmable transaction blocks. A PTB is an ordered
-list of commands plus signer, gas, and expiry metadata.
+Petals expose side effects as writable files. This page covers what a write
+means, what it does not mean, and how to represent approval, submission,
+broadcast, confirmation, and completion so that people and agents can tell them
+apart.
 
-## Command Shape
+## What a write is
 
-The main command kind is a petal call:
+A writable route exports `write`:
+
+```wit
+export write: func(ctx: ctx, body: list<u8>) -> result<_, route-error>;
+```
+
+Bloom waits for that export to complete and propagates its error to the VFS
+caller, so a returned write error is visible to a mounted filesystem or a
+`bloom vfs write` client. Design and test every write against synchronous
+execution.
+
+A writable route must define both handlers in its route file. Use the read
+handler for safe instructions or current non-secret state, so the file is
+discoverable and safe to `cat` before writing to it.
+
+### `write_async` is reserved
+
+The WIT `route-meta` record retains `write-async` for serialized-format
+compatibility, and generated metadata and installation consent may call the same
+field `write_async`. It is reserved metadata in this iteration: Bloom does not
+detach writes when it is `true`, and authors must not document it as a
+background-job guarantee. Set it deliberately only for compatibility with
+existing components.
+
+## What a write is not
+
+A successful return means the route handler completed. It does **not** imply
+that a transaction the handler staged has been approved, signed, broadcast, or
+confirmed, or that a venue filled an order.
+
+Never report a broadcast, confirmation, or fill solely because a route write was
+accepted. Represent those states explicitly through inspectable routes and
+receipts.
+
+## The lifecycle
+
+Keep these stages distinct in your durable state and in your `AGENTS.md`:
+
+| Stage | Meaning |
+| --- | --- |
+| Accepted | The `write` export parsed and validated the body and returned success. |
+| Staged | An intent or transaction exists and is durable, but no authority has been applied. |
+| Approved | The owner completed the required Bloom approval ceremony. |
+| Submitted | Bloom signed and handed the payload to an upstream or the outbox. |
+| Broadcast | The transaction reached the network. |
+| Confirmed | The network or venue durably accepted it. |
+| Completed | The domain-level outcome occurred (filled, settled, transferred). |
+
+For side-effecting routes:
+
+- validate body size and shape before doing any external work;
+- bind the body to the route's permitted operation — a route named for one
+  action must reject a body describing another;
+- preserve stable idempotency identifiers across approval retries;
+- store enough status, response, and error state for inspection;
+- make writes idempotent wherever retry is possible.
+
+Do not exercise production writes or material funds unless the user explicitly
+authorizes that environment and action.
+
+## Binding the body to the route
+
+The route file owns the check that the submitted body matches the file the
+caller wrote to:
+
+```rust title="route/files/.../order.json.rs"
+write: |ctx: &petal::Ctx, body: &[u8]| {
+    if let Err(response) = crate::validate_body_size(body) {
+        return response;
+    }
+    let request = match crate::serde_json::from_slice::<crate::SignSubmit>(body) {
+        Ok(request) => request,
+        Err(error) => return petal::error(-3, format!("invalid session action: {error}")),
+    };
+    if !matches!(&request.action, crate::ExchangeAction::Order { .. }) {
+        return petal::error(
+            -3,
+            format!("order.json cannot submit action type {}", request.action.kind()),
+        );
+    }
+    crate::session_action_write(ctx, /* ... */ request)
+}
+```
+
+## Signing and approvals
+
+Petals never hold or manage private keys and never broadcast directly. A signing
+route declares an intent through `signing_write_spec(intent)`; that intent must
+appear in `[sign].allowed_intents` in `petal.toml`. Bloom owns the approval
+ceremony and the signature.
+
+For bounded delegated sessions, key derivation and signing are separate
+authorities. A route that imports `bloom:key/derive@0.1.0` must declare the
+child-key operation classes it delegates in `[[key.derive]]`, and each of those
+classes must also be an allowed signing intent. The installer records only the
+route's immediate intent plus those explicit delegated classes.
+
+In the Hyperliquid Petal, session key provisioning takes two Bloom authority
+steps: the key-derivation custody ceremony, and one reusable Sealed Approval
+covering the typed session-action routes declared in the immutable key scope.
+The approval binding is stored with the public `KeyRef`; each typed action
+selects the same key and therefore reuses the approval without another owner
+ceremony. Bounded agent private keys remain exclusively in Signer — the Petal
+persists only the public `KeyRef` and EVM address, and private keys are never
+generated by, returned to, or stored by the Petal.
+
+## Receipts
+
+Mutable "last response" files race. When a caller needs to confirm that one
+specific action was accepted, give it an immutable receipt keyed by a
+caller-supplied idempotency identifier.
+
+Hyperliquid writes action receipts keyed by client order ID under the session:
 
 ```text
-Command::Move {
-  petal: { path, hash },
-  function,
-  type_args,
-  args,
-}
+receipts/<cloid>/order.json
+receipts/<cloid>/cancel.json
 ```
 
-Arguments can be:
+Each receipt is scoped by session, action, and normalized `cloid`, records the
+original batch item and its index, and contains only that item's positional
+venue status — so it cannot be overwritten by a later action or raced against
+the session's mutable `last_response.json`.
 
-- signer references;
-- constants;
-- object references;
-- outputs from earlier commands;
-- type arguments.
+A route's read handler should tell callers how to recognize completion: the
+receipt path, a poll interval, a timeout, and the exact predicate that
+constitutes success. Document that an accepted filesystem write is asynchronous
+with respect to the venue and that dispatch may take longer than the caller
+expects — the correct behavior is to keep polling the exact receipt path for the
+full timeout, not to assume success.
 
-The validator checks that each command matches the target function declared in
-the petal manifest. Constant arguments and return slots are canonical Bloom
-values decoded against the manifest-declared `TypeTag`; object arguments are
-object IDs plus access metadata.
+## Inspecting from the filesystem
 
-## Endpoint Paths
-
-The front door resolves endpoint paths by splitting at the final slash:
-
-```text
-/bloom/dex/pool/swap_exact_in
-└──────────────┬──┘ └──────┬──────┘
-          petal path      function
-```
-
-The chain resolves the petal path to a content hash, loads the manifest, and
-finds the named function.
-
-## Pipe Expressions
-
-`bloom pipe` is CLI sugar over PTBs. A linear pipe connects each command's
-primary output to the next command:
+Because everything is a file, the whole lifecycle is inspectable with ordinary
+tools:
 
 ```sh
-bloom pipe '/bloom/a/make 10 | /bloom/b/use @0'
+bloom vfs cat  /petals/hyperliquid/mainnet/agent_sessions/w1/s1/order.json
+bloom vfs write /petals/hyperliquid/mainnet/agent_sessions/w1/s1/order.json < order.json
+bloom vfs cat  /petals/hyperliquid/mainnet/agent_sessions/w1/s1/status.json
+bloom vfs cat  /petals/hyperliquid/mainnet/agent_sessions/w1/s1/last_error.json
+bloom vfs cat  /petals/hyperliquid/mainnet/agent_sessions/w1/s1/receipts/0x…/order.json
 ```
 
-Labels make larger plans clearer:
-
-```sh
-bloom pipe '/bloom/examples/counter/new 0 as c | /bloom/examples/counter/increment @c 5'
-```
-
-The grammar also accepts explicit references:
-
-```text
-@<cmd_idx>.<ret_idx>
-@label
-obj:<object-id>[@version]
-signer:<index>
-type:<type-tag>
-key=value
-```
-
-## VFS Tx Sessions
-
-The VFS front door exposes the same builder as files:
-
-```text
-tx/
-  new
-  <id>/
-    cmd
-    status
-    signer
-    gas-payer
-    commit
-    abort
-```
-
-Writing a command line to `tx/<id>/cmd` validates and appends it. Reading
-`tx/<id>/commit` builds the same PTB that `bloom pipe` would build.
-
-## Atomicity
-
-The executor runs the PTB over a state snapshot. If any command fails, all
-writes are discarded. This is the core property that makes multi-step petal
-composition useful.
-
-## Read-Only View Calls
-
-For Ethereum-style reads, nodes expose `chain_view_call`. A view call executes
-one or more `#[view]` petal functions against a committed snapshot, meters fuel,
-returns typed JSON plus the raw manifest-declared return slots, and never
-commits state.
-
-Typed JSON is a projection of the same canonical value codec used by PTBs and
-object payloads. For example, `u64` and `u128` are decimal strings, smaller
-integers are JSON numbers, 32-byte values and `bytes` are lowercase hex strings,
-vectors and sets are arrays, maps are arrays of `[key, value]` pairs, `Option`
-uses `null` for `None`, and `Result` uses `{ "Ok": value }` or
-`{ "Err": value }`.
-
-Only functions marked `#[view]` in the petal manifest can be called this way.
-The chain verifies view purity at deploy time by checking that the view export
-cannot reach mutating host imports. At call time, the node validates the call in
-read-only mode: no gas coin is required, object arguments are forced to
-read-only borrows, and any produced writes, deletes, ownership changes, or
-publish events reject the result.
-
-### CLI Form
-
-```sh
-bloom chain view \
-  --path /bloom/examples/hello \
-  --function add \
-  --arg 2 \
-  --arg 40
-```
-
-For historical reads, add `--at-block <height>`. The height selector exists only
-on the standalone view path; committed PTBs always execute against the current
-block state.
-
-Object reads use object JSON. If `version` is omitted, the node fills it from the
-selected snapshot:
-
-```sh
-bloom chain view \
-  --path /bloom/examples/counter \
-  --function value \
-  --arg '{"kind":"object","id":"<counter-object-id-hex>"}'
-```
-
-Generic functions take one `--type-arg` per type parameter. The CLI accepts
-canonical TypeTag hex, labels such as `u64` or `vector<u64>`, and structured
-TypeTag JSON:
-
-```sh
-bloom chain view \
-  --path /bloom/core/fungible \
-  --function value \
-  --type-arg 'Token@<token-petal-hash>' \
-  --arg '{"kind":"object","id":"<coin-object-id-hex>"}'
-```
-
-The same type argument can be written in RPC JSON form:
-
-```json
-{
-  "concrete": {
-    "petal_hash": "<token-petal-hash>",
-    "type_name": "Token",
-    "type_args": []
-  }
-}
-```
-
-### RPC Form
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "chain_view_call",
-  "params": {
-    "path": "/bloom/examples/counter",
-    "function": "value",
-    "args": [
-      { "kind": "object", "id": "<counter-object-id-hex>" }
-    ],
-    "fuel_limit": 1000000
-  }
-}
-```
-
-The same call can be written with a `commands` array. Use this form when a view
-needs outputs from earlier view commands:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "chain_view_call",
-  "params": {
-    "commands": [
-      {
-        "path": "/bloom/examples/hello",
-        "function": "add",
-        "args": [2, 40]
-      },
-      {
-        "path": "/bloom/examples/hello",
-        "function": "add",
-        "args": [{ "use": { "cmd": 0, "ret": 0 } }, 8]
-      }
-    ]
-  }
-}
-```
-
-### DEX Examples
-
-For view-marked DEX entry points, quote and reserve reads use the same surface.
-
-Pure constant-product math can be called with ordinary JSON numbers:
-
-```sh
-bloom chain view \
-  --path /bloom/dex/strategy/cpmm \
-  --function cpmm_quote_preview \
-  --arg 1000 \
-  --arg 1000 \
-  --arg 100 \
-  --arg 30
-```
-
-Pool reserves are object reads:
-
-```sh
-bloom chain view \
-  --path /bloom/dex/pool \
-  --function reserves \
-  --arg '{"kind":"object","id":"<pool-object-id-hex>"}'
-```
-
-Router quotes are generic over the token route:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "chain_view_call",
-  "params": {
-    "path": "/bloom/dex/router",
-    "function": "quote_1hop",
-    "type_args": [
-      {
-        "concrete": {
-          "petal_hash": "<token-a-petal-hash>",
-          "type_name": "TokenA",
-          "type_args": []
-        }
-      },
-      {
-        "concrete": {
-          "petal_hash": "<token-b-petal-hash>",
-          "type_name": "TokenB",
-          "type_args": []
-        }
-      }
-    ],
-    "args": [
-      { "kind": "object", "id": "<pool-object-id-hex>" },
-      "1000000000000000000"
-    ],
-    "at_block": 12345
-  }
-}
-```
+Reading the writable route first returns its request schema, an example body,
+and its success-evidence contract. Test both the direct VFS fallback and a
+mounted daemon before publishing — see [Testing](/petals/testing).

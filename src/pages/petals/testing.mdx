@@ -1,79 +1,161 @@
 # Testing Petals :badge[Partial]{warning}
 
-Petal testing usually happens at three levels.
+Petal validation happens in layers, and no single layer is sufficient. In
+particular, a successful `cargo build` of the shared route crate is **not**
+evidence that route sources compile: every route file is an independently
+generated component crate, and only `petal build` exercises them.
 
-## 1. Host-Side Unit Tests
+Use your repository's pinned commands and scripts. At minimum, run the layers
+below in order.
 
-Keep math and host-operation helpers in normal Rust modules. Test them without
-wasm, but use the canonical `BloomType` codec for payload bytes.
+## 1. Architecture and host-side tests
 
-The standard fungible petal uses this shape:
-
-```rust
-pub mod ops {
-    use bloom_resource::{BloomType, Erased, PetalError};
-
-    pub fn coin_payload(value: u128) -> Vec<u8> {
-        crate::fungible::Coin::<Erased> { value, _phantom: Default::default() }
-            .canonical_encode()
-    }
-
-    pub fn decode_coin_value(bytes: &[u8]) -> Result<u128, PetalError> {
-        crate::fungible::Coin::<Erased>::canonical_decode(bytes)
-            .map(|coin| coin.value)
-            .map_err(|_| PetalError::InvalidArgs)
-    }
-}
-```
-
-Those helpers construct the declared Rust type and call
-`canonical_encode()` / `canonical_decode()`; they do not hand-pack fields or
-read fixed offsets. This gives fast tests for most bugs while keeping the
-payload layout identical to the manifest-driven chain codec.
-
-## 2. PTB Harness Tests
-
-Use the in-process harness to build state, submit PTBs, and assert object
-changes. These tests exercise validation, borrow-table behavior, command output
-threading, ownership index updates, and atomic reverts.
-
-The Bloom repo has harnesses under:
-
-```text
-crates/bloom-petal-it/
-examples/petal-dex/tests/bloom-petal-dex-it/
-```
-
-## 3. Real Wasm Tests
-
-For macro and chain-VM confidence, build the petal to wasm and execute the real
-exports. This catches issues that pure host-side tests cannot catch:
-
-- missing `__petal_<name>` exports;
-- missing or malformed manifest custom sections;
-- unsupported wasm imports;
-- ABI mismatch between manifest and wasm export;
-- canonical value codec mismatch between guest code and manifest validation;
-- fuel or memory failures.
-
-Example command:
+Format, lint, and run the shared crate's unit tests, then run the repository's
+route-architecture source check:
 
 ```sh
-cargo test -p bloom-petal-identity -- --ignored
+bash scripts/check-route-architecture.sh
+cargo test --manifest-path route/Cargo.toml --locked
 ```
 
-Ignored tests are useful when they require `wasm32-unknown-unknown` or a slower
-integration environment.
+The architecture check is the authoritative gate for rules the toolchain cannot
+see. The scaffold's version rejects catch-all `read`/`write`/`dispatch`
+functions, shared code that inspects route identity via `current_route_path` or
+`current_route_canonical_path`, vendored SDK copies in place of the canonical
+published SDK, secret-namespace accessors inside route files, and writable
+routes that define no local read handler.
 
-## What To Test For Every Petal
+Keep host-side unit tests focused on the shared crate's typed infrastructure:
+protocol serialization, hashing, idempotency keys, domain validation, response
+projection. These are fast and catch most logic bugs.
 
-- Manifest contains the expected path and public functions.
-- Every public function has the expected argument and return shape.
-- Object, capability, and `BloomType` payloads round-trip through
-  `canonical_encode()` / `canonical_decode()`.
-- Malformed object payloads are rejected by `object.create` and
-  `object.mutate`.
-- Cap-gated functions reject missing or mismatched caps.
-- Mutable functions update only the intended objects.
-- Consuming functions cannot be double-spent in one PTB.
-- Reverts leave state unchanged.
+## 2. Component and route builds
+
+```sh
+petal build --root .
+petal check --root .
+```
+
+`petal build` compiles every route file into a component. `petal check`
+reconciles each route's declared capabilities against the imports of the
+components on disk — it does **not** rebuild, so never run it against stale
+artifacts.
+
+Both reject a capability declared by a route spec that the compiled component
+does not import, and reject unknown component imports.
+
+## 3. Import and policy inspection
+
+Inspect the top-level `bloom:*` imports of changed route components and compare
+them against all three policy scopes — route spec `required_caps`,
+`[caps].allowed`, and the per-surface `[[net.allow]]`, `[store]`, `[sign]`, and
+`[[key.derive]]` tables:
+
+```sh
+wasm-tools component wit petal/<name>/<route>.wasm
+```
+
+Treat unexpected imports or authority as architecture feedback, not as a reason
+to broaden declarations. Refactoring shared dispatch into local handlers often
+removes imports through dead-code elimination, so re-inspect after any
+architectural change.
+
+Also confirm the expected route count and investigate unexpected
+component-size changes.
+
+## 4. Package validation
+
+`petal package` checks built routes but validates only basic `petal.toml`
+identity. Bloom's validator is what proves the complete manifest policy covers
+the compiled imports:
+
+```sh
+petal package --root . --out dist/<name>-v0.1.0.petal.tar.gz
+bloom petals build .
+bloom petals install .
+```
+
+`bloom petals build` and install validation reject compiled imports not covered
+by `[caps].allowed` and the applicable network, signing, and store policy, and
+enforce route metadata as the runtime narrowing boundary.
+
+Install both the directory and the archive — they go through the same
+validation pipeline as a GitHub source install. If your package declares
+`[source]`/`[build]`, also test installation by tag and by immutable commit.
+
+## 5. Runtime VFS tests
+
+Packaging does not replace route-level tests or a runtime smoke test. Before
+publishing, exercise the Petal through **both** the direct VFS fallback and a
+mounted daemon:
+
+```sh
+bloom vfs ls  /petals/<name>
+bloom vfs cat /petals/<name>/status.json
+bloom vfs write /petals/<name>/<writable-route> < body.json
+```
+
+Cover, for every route:
+
+- `lookup` on existing and missing entries;
+- `list` on static directories and on dynamic directories that must produce
+  their children explicitly;
+- `read` output shape and cache behavior;
+- every writable route, including bodies that do not match the route's
+  permitted operation;
+- invalid input — bad parameters, oversized bodies, malformed JSON;
+- backend failure — upstream errors, timeouts, and store failures;
+- that errors returned to the VFS caller are actionable for both people and
+  agents, and are sanitized of upstream internals.
+
+For a staged transaction workflow, verify that route output and documentation
+distinguish staging, approval, submission, broadcast, confirmation, and
+receipts, and that nothing claims completion on the strength of an accepted
+write. See [Writes and receipts](/petals/ptbs-and-pipes).
+
+## 6. Secret-boundary tests
+
+Add tests that confirm no secret value is reachable through any public route or
+present in the packaged artifacts. Private keys, derived agent keys, API
+secrets, bearer tokens, secret-store values, and not-yet-submitted signatures
+must never appear in a read response, an error, a log, or the public state
+namespace.
+
+## 7. Determinism and release
+
+Packaging is deterministic: sorted strict ustar entries, normalized ownership,
+permissions and timestamps, and a gzip header with a zero timestamp. Repeating
+`petal package` over the same clean package tree produces identical bytes, and
+it refuses to overwrite an existing output. Verify that in CI by packaging twice
+from a clean tree and comparing hashes.
+
+Verify the contract digest your toolchain speaks:
+
+```sh
+petal inspect
+```
+
+CI should reject a WIT digest it did not intentionally upgrade to.
+
+The tag-triggered release workflow runs the same packaging validation before a
+tag is created, and publishes three immutable assets: the
+`<name>-vX.Y.Z.petal.tar.gz` archive, `SHA256SUMS`, and `petal-release.json`.
+`expected-route-count` in the workflow inputs protects against a release that
+silently omits routes; zero disables the assertion. Bloom pins the release tag,
+source commit, archive name, and package hash, and the route crate and Petal SDK
+are locked in `route/Cargo.lock`.
+
+## Review checklist
+
+Before handing off, confirm:
+
+- every route's behavior is visible in its route file;
+- shared code contains no filename- or path-driven endpoint dispatcher;
+- every writable file defines safe local read behavior;
+- route capabilities stay within compiled imports and cover successful paths;
+- the package capability ceiling and per-surface policy cover only intended use;
+- network egress is allowlisted to the narrowest host, method, and path set;
+- no secret or signature material is reachable through a read handler;
+- durable state does not overstate external completion;
+- all route components and release packaging validate;
+- no live write was performed without explicit authorization.

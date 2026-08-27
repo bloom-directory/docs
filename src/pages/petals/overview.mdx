@@ -4,32 +4,84 @@
 
 Petals are not ready for prime-time use. They are in active development, the APIs and runtime model may change, and the current documentation is primarily for Bloom developers rather than end users.
 
-Today, Petals should be understood as the path toward safe extensions to walletFS: small, reviewable modules that can add capabilities behind Bloom’s policy, planning, and filesystem boundaries without asking agents to write custom signing or broadcast code.
+A Petal is a local, off-chain package that adds new files to walletFS. It
+contains a filesystem-shaped tree of routes, each compiled to its own
+WebAssembly component, plus a manifest that declares exactly which host
+authority the package is allowed to use. Bloom mounts the tree read/write under
+`/petals/<name>/`, so agents and people work with a Petal the same way they
+work with the rest of walletFS: `ls`, `cat`, and write a file.
 
-For an early example of a custom petal, see [`bloombook`](https://github.com/bloom-directory/bloombook). It is useful as a developer reference for how Petals can package new filesystem-backed capabilities, but it should be treated as experimental alongside the Petals runtime itself.
+Petals do not run on a chain, are not called through transaction blocks, and
+have no object model of their own. Everything a Petal can reach — HTTP, storage,
+signing, key derivation, the transaction outbox, chain reads, walletFS itself —
+is an explicit capability mediated by Bloom.
 
-A petal is a Bloom application module compiled to WebAssembly. A deployed petal is content-addressed by its wasm hash and bound to a human-readable path such as `/bloom/core/fungible` or `/bloom/dex/pool`.
+## Why this shape
 
-Petals are invoked through programmable transaction blocks, or PTBs. A PTB can call multiple petal functions, pass outputs from one command into later commands, transfer objects, split and merge coins, and commit or revert atomically.
+- **Reviewable.** A route's behavior is visible in the single source file that
+  compiles to that route's component. There is no central dispatcher to trace.
+- **Least authority.** Route metadata, the package manifest, and the compiled
+  component's imports are three separate scopes that must agree. Metadata can
+  narrow authority at runtime; nothing can widen it.
+- **No custom signing or broadcast code.** A Petal describes an intent; Bloom
+  owns approval, signing, and submission.
+- **Deterministic to ship.** Packaging produces byte-identical archives, and
+  releases are pinned by tag, commit, archive name, and package hash.
 
-## What Petal Authors Write
+## The route tree is the interface
 
-Petal authors should start in their own Rust project, not inside the Bloom monorepo. Today, depend on the Bloom repo by git URL, build your crate to wasm, and use the Bloom CLI to deploy the resulting `.wasm`.
+A package holds exactly one route tree. Its layout on disk is its public
+filesystem:
 
-Petal authors write Rust crates that depend on the Bloom runtime and macros:
+```text
+my-petal/
+  petal.toml            # identity, consent summary, capability ceiling, policy
+  README.md             # developer/contributor documentation
+  AGENTS.md             # operating contract for users and agents
+  petal/
+    my-petal/           # must match `name` in petal.toml
+      $index.wasm       # the directory itself
+      status.json.wasm  # /petals/my-petal/status.json
+```
 
-- `bloom-resource`: guest-side runtime types such as `Resource<T>`, `Coin<T>`, `Capability<T>`, `Signer`, `UID`, `BloomType`, and host wrappers.
-- `bloom-resource-macros`: `#[bloom::petal]`, `#[bloom::object]`, `#[bloom::capability]`, `#[derive(BloomType)]`, and `#[bloom::invariant]`.
-- `bloom-objects`: object IDs, owners, access modes, and type tags.
+Every route artifact is a WebAssembly component implementing the
+`bloom:route@0.1.0` contract; raw core Wasm is rejected. The contract exports
+`metadata`, `lookup`, `list`, `read`, and `write`, and a route returns
+`route-error.unsupported` for anything it does not implement.
 
-Every public function inside a `#[bloom::petal]` module becomes a callable entry point. The macro emits:
+## Writes are not completions
 
-- one wasm export named `__petal_<function>`;
-- a `bloom_petal_manifest_v0` custom section;
-- an accessor for the encoded manifest bytes, used heavily by tests.
+A successful write means the route handler completed. It does not mean a
+transaction was approved, broadcast, or confirmed. Petals must expose those
+states explicitly through inspectable routes and receipts. See
+[Writes and receipts](/petals/ptbs-and-pipes).
 
-## What The Chain Uses
+## Toolchain
 
-At deploy time, Bloom checks that the wasm contains a manifest section, that the manifest path matches the deploy path, and that every manifest function has a matching wasm export.
+| Tool | Owns |
+| --- | --- |
+| `petal` CLI (`bloom-petal-cli`) | `new`, `build`, `check`, `package`, `inspect` |
+| `bloom petals` | `build`, `install`, `ls`, `uninstall` — package validation and installation |
+| `bloom vfs` | direct read/write against the mounted tree |
 
-At call time, the PTB validator loads the manifest, checks argument kinds and object access modes, then the executor runs the wasm under a deterministic chain VM. Constants, returns, and object payloads use Bloom's canonical, manifest-driven value codec; old ad hoc petal payload layouts are not the supported authoring model.
+The `bloom-directory/petal` repository is the release authority for the
+component contract, the Rust SDK (imported as the crate `petal`), the route
+builder, the CLI, templates, and conformance fixtures.
+
+## A real example
+
+[`bloom-petal-hyperliquid`](https://github.com/bloom-directory/bloom-petal-hyperliquid)
+is the reference production Petal. It exposes read-only market and account
+files, signed exchange actions, owner-approved USDC transfers, and bounded
+agent sessions under `/petals/hyperliquid/`. All HTTP access, persistence, and
+signing go through Bloom's authority path; bounded agent private keys stay
+exclusively in Signer and are never generated by, returned to, or stored by the
+Petal.
+
+## Next
+
+- [Quickstart](/petals/quickstart) — scaffold, build, and install your first Petal.
+- [Model](/petals/model) — the route contract, route resolution, and the capability model.
+- [Authoring](/petals/authoring) — route files, specs, and shared code boundaries.
+- [Writes and receipts](/petals/ptbs-and-pipes) — write lifecycle, approvals, and receipts.
+- [Testing](/petals/testing) — the layered validation pipeline.

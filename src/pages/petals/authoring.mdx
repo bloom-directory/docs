@@ -1,227 +1,232 @@
 # Authoring Petals :badge[Partial]{warning}
 
-The petal authoring surface is a small Rust framework.
+Build Petals as explicit virtual files whose behavior is understandable from
+their route source. Keep endpoint policy local and share only substantial,
+typed infrastructure.
 
-## Project Setup
+## Before coding
 
-Petals should be normal Rust crates. Do not clone the full Bloom source tree
-just to write one.
+Start from the canonical scaffold (`petal new`) and adapt it rather than
+inventing a parallel layout. Read the target repository's `AGENTS.md`,
+`README.md`, `petal-build.toml`, manifests, and build scripts first, and treat
+its pinned SDK and tooling as authoritative — do not assume another Petal uses
+the same SDK revision or helper API.
 
-Start with:
+Then write down the product and trust contract:
 
-```sh
-cargo new my-petal --lib
-cd my-petal
+- the users and tasks the VFS should support;
+- the route tree, and the content or body schema of every file;
+- which reads contact an upstream, which writes have side effects, and which
+  networks are allowed;
+- the lifecycle of every durable operation: retry, approval, failure, recovery,
+  completion;
+- which credentials, wallet operations, settings, and stored values cross a
+  trust boundary;
+- the pinned Petal contract, SDK, CLI, and release target.
+
+Do not invent a production write flow, credential format, signing intent, or
+claim of completion. If something is genuinely unspecified, take the read-only
+or sandbox choice and state the assumption.
+
+A compact route contract is useful while designing:
+
+| Route | Kind | Parameters | Read | Write body/effect | State | Capabilities |
+| --- | --- | --- | --- | --- | --- | --- |
+| `markets/[slug]/book.json` | file | `slug` | projected order book | — | none | `bloom:http` |
+
+## Map route files explicitly
+
+The configured `routes` directory is executable source, not a conventional Rust
+module tree. Every `.rs` file below it becomes a separately compiled component:
+
+- `route/files/$index.rs` defines the root directory;
+- `route/files/markets/$index.rs` defines the `markets` directory;
+- `route/files/markets/[slug]/book.json.rs` defines `markets/<slug>/book.json`;
+- `route/files/$lookup.rs` refines `lookup` for dynamic entries;
+- a bracketed segment such as `[slug]` is read with `petal::param(ctx, "slug")`;
+- `$list.rs` is unsupported — use `$index.rs`.
+
+Directory contents are explicit. Use `list` for a fixed child list,
+`fallible_list` for a computed result that does not need the context, and
+`ctx_list` for a context-dependent result. Use `petal::dir`, `petal::file`, or
+`petal::writable` to report the correct child kind. Listing a dynamic directory
+does not happen automatically.
+
+Validate parameters for their domain before using them in URLs, storage keys,
+or VFS paths. Before interpolating a value into a URL, enforce its strict domain
+grammar or encode it as a URL path segment. `petal::is_safe_segment` is for VFS
+and storage path segments; it is **not** sufficient URL validation. Do not
+assume a context parameter is safe merely because the source filename uses
+brackets.
+
+## One handler per route file
+
+Use one supported `petal::route_file!` shape per route:
+
+- directory: `list`, `fallible_list`, or `ctx_list`;
+- read-only file: `read`;
+- writable file: `read` plus `write`.
+
+Start with the narrowest matching spec:
+
+| Spec | Intended use | Default declared capabilities |
+| --- | --- | --- |
+| `static_dir_spec()` | fixed directory | none |
+| `store_dir_spec()` | stored/dynamic directory | store, VFS read |
+| `http_dir_spec()` | upstream-backed directory | HTTP |
+| `static_read_spec()` | pure/static file | none |
+| `http_read_spec(ttl_ms)` | cacheable upstream read | HTTP |
+| `store_read_spec()` | stored read | store |
+| `wallet_http_read_spec(ttl_ms)` | HTTP read using wallet VFS data | HTTP, VFS read |
+| `account_read_spec()` | HTTP/store/wallet account read | HTTP, store, VFS read |
+| `chain_read_spec()` | side-effecting, uncached chain flow | broad host set |
+| `write_spec()` | uncached writable file | broad host set |
+| `signing_write_spec(intent)` | writable file with signing intent | broad host set |
+
+Override with `.caps(&[...])` when the compiled route imports a narrower or
+different set. The broad write and chain specs are convenience defaults, not
+permission to retain unused capabilities.
+
+Return errors through `petal::error`: `-1` not found, `-2` denied, `-3` invalid
+input, `-4` backend failure. Other codes become `unsupported`. Sanitize upstream
+and storage errors before returning them.
+
+A read route from the Hyperliquid Petal:
+
+```rust title="route/files/[network]/mids.json.rs"
+petal::route_file!(spec: petal::http_read_spec(5_000), read: |ctx: &petal::Ctx| {
+    let network = match petal::param(ctx, "network").and_then(|value| {
+        crate::Network::parse(value).map_err(|error| petal::error(-3, error))
+    }) {
+        Ok(network) => network,
+        Err(response) => return response,
+    };
+    crate::http_read_json(network, "/info", crate::serde_json::json!({"type": "allMids"}))
+});
 ```
 
-Add the Bloom petal crates by git URL:
+## Never dispatch on route identity
 
-```toml title="Cargo.toml"
-[dependencies]
-bloom-resource = { git = "https://github.com/bloom-directory/bloom.git" }
-bloom-resource-macros = { git = "https://github.com/bloom-directory/bloom.git" }
-```
+Do not create catch-all `read`, `write`, or `dispatch` functions that inspect
+route identity. This covers every accessor the SDK exposes now or later,
+including `current_route_path` and `current_route_canonical_path`, as well as
+filenames, path suffixes, and parameter presence. Do not route through chains of
+`contains`, `ends_with`, or string-keyed matches.
 
-Set the library crate types:
-
-```toml title="Cargo.toml"
-[lib]
-crate-type = ["cdylib", "rlib"]
-```
-
-Build only your petal:
-
-```sh
-cargo build --target wasm32-unknown-unknown --release
-```
-
-The Bloom CLI and chain are deployment tools. They do not need to be workspace
-siblings of your petal crate.
-
-Most petals do not need to depend on `bloom-objects` directly because
-`bloom-resource` re-exports the author-facing `TypeTag` runtime type. Add
-`bloom-objects` only when a petal or host-side test manually names lower-level
-object-model types:
-
-```toml
-bloom-objects = { git = "https://github.com/bloom-directory/bloom.git" }
-```
-
-## `#[bloom::petal]`
-
-Apply `#[bloom::petal]` to an inline module:
+Avoid:
 
 ```rust
-use bloom_resource_macros as bloom;
-
-#[bloom::petal(path = "/bloom/examples/math", version = "0.1.0")]
-pub mod math {
-    pub fn add(a: u128, b: u128) -> u128 {
-        a + b
+pub fn read(ctx: &petal::Ctx) -> petal::DispatchResponse {
+    let path = petal::current_route_path(ctx);
+    if path.ends_with("status.json") {
+        // ...
+    } else if path.contains("orders/") {
+        // ...
+    } else {
+        // ...
     }
 }
 ```
 
-Every `pub fn` inside the module becomes part of the petal ABI. Private helpers
-remain normal Rust helpers.
-
-The macro records:
-
-- module path;
-- framework version;
-- object declarations;
-- capability declarations;
-- plain `BloomType` data structs and enums;
-- public function names, arguments, returns, view flags, signers, and required caps;
-- invariants.
-
-## `#[view]`
-
-Add `#[view]` to a public petal function that reads state but does not create,
-mutate, transfer, freeze, share, or delete objects.
+Prefer:
 
 ```rust
-#[bloom::petal(path = "/bloom/examples/math", version = "0.1.0")]
-pub mod math {
-    #[view]
-    pub fn add(a: u128, b: u128) -> u128 {
-        a + b
-    }
-}
+petal::route_file!(
+    spec: petal::http_read_spec(5_000),
+    read: |ctx: &petal::Ctx| {
+        let market = match petal::param(ctx, "market") {
+            Ok(market) => market,
+            Err(response) => return response,
+        };
+        read_market_status(market)
+    },
+);
 ```
 
-View functions are discoverable in the manifest and can be called through
-`bloom chain view` or the `chain_view_call` RPC method. Chain-mode deployment
-statically checks each view export's call graph and rejects a view that can
-reach mutating host imports. The read path also runs with read-only validation:
-object arguments are borrowed read-only, no gas coin is required, and any
-attempted state effect rejects the result.
+The structural guarantee is that each route file is generated as its own
+component crate and `route_file!` wires exactly one local handler per file, so
+shared code cannot serve a route unless that route opts in. This also lets each
+component discard code it does not use.
 
-`#[view]` is a bare marker and does not accept arguments.
+`petal check` reconciles declared capabilities against compiled imports but does
+not inspect source for route-identity access, so this rule has no canonical
+lint. A repository-level source check is the authoritative gate — the scaffold
+ships `scripts/check-route-architecture.sh`, which also rejects vendored SDK
+copies, secret-namespace accessors in route files, and writable routes with no
+local read handler. Keep its denylist aligned with the accessors your pinned SDK
+actually exposes.
 
-## `#[bloom::object]`
+## Keep local decisions local
 
-Use `#[bloom::object]` for durable resource types.
+Own these in the route file:
 
-```rust
-#[bloom::object(abilities = "key, store", phantom = "T")]
-pub struct Supply<T> {
-    pub id: UID,
-    pub total: u128,
-    pub _phantom: core::marker::PhantomData<T>,
-}
-```
+- route-parameter parsing and validation;
+- upstream endpoint and request-body selection;
+- response projection or user-facing read content;
+- write-body parsing and route/action compatibility;
+- the route's read description when a writable file is also readable;
+- route-specific errors and semantics.
 
-Recognized forms:
+## Share typed infrastructure
 
-```rust
-#[bloom::object]
-#[bloom::object(abilities = "key, store")]
-#[bloom::object(abilities = "key, store, copy, drop")]
-#[bloom::object(no_abilities)]
-#[bloom::object(phantom = "T, U")]
-```
+Put code in the shared route crate only when it represents substantial,
+reusable behavior rather than endpoint selection. Good candidates:
 
-The macro also emits `BloomType` encoding and decoding for the object payload.
-Petal code should create and mutate object bytes with
-`T::canonical_encode()` / `T::canonical_decode()` instead of hand-written
-payload codecs.
+- protocol types, serialization, hashing, and signing;
+- bounded HTTP, store, chain, transaction, and VFS adapters;
+- idempotency and durable state machinery;
+- domain validation or policy used identically by multiple routes;
+- multi-step operations with typed inputs and outputs.
 
-Plain generic payload fields are rejected unless they are phantom parameters or
-wrapped in Bloom runtime resource types. This keeps object payload layout
-explicit and manifest-resolvable.
+Pass typed values from the route file into shared functions. Never pass a route
+path or filename and ask shared code to infer the operation. A little repetition
+in route files beats hidden coupling through dynamic dispatch.
 
-## `#[bloom::capability]`
+## Declare least capabilities
 
-Capabilities are authority resources:
+Keep the three scopes distinct: the route spec declares the component's
+`required_caps`, `[caps].allowed` is the package-wide ceiling, and
+`[[net.allow]]`, `[sign]`, `[store]`, and `[[key.derive]]` constrain particular
+host surfaces. See [Model](/petals/model) for the full import-to-capability
+mapping and the validator boundaries.
 
-```rust
-#[bloom::capability(phantom = "T")]
-pub struct MintCap<T> {
-    pub id: UID,
-    pub _phantom: core::marker::PhantomData<T>,
-}
-```
+Refactoring shared dispatch into local handlers often removes imports through
+dead-code elimination, so revisit both scopes after architectural changes.
+Inspect the top-level `bloom:*` imports of changed components with
+`wasm-tools component wit` and compare them against the route spec and the
+package manifest. Treat unexpected imports as architecture feedback, not as a
+reason to broaden declarations.
 
-The macro is sugar for a key/store/copy object declaration plus the runtime
-marker trait. It participates in the same canonical payload codec as objects. A
-function that takes `&Capability<MintCap<T>>` is cap-gated.
+Network egress is part of least capability. Declare every reachable upstream
+host with its own `[[net.allow]]` table, explicit methods, and path prefixes.
+Shared HTTP helpers should resolve targets from a fixed enumerated source — for
+example a `Network` variant returning a `&'static str` URL — so route code
+cannot direct a request at an arbitrary host. Widen `[net.allow]` deliberately,
+never as a side effect of editing a helper.
 
-## `#[derive(BloomType)]`
+## Protect sensitive material
 
-Use `BloomType` for plain value structs and enums that are passed as constants,
-stored inside object fields, or used inside collections.
+When a route signs locally with a stored key, its declared capabilities should
+omit the host signing capability, and the signing function must live behind a
+typed helper that cannot return key bytes to its caller. Treat the boundary
+between the secret namespace and the readable VFS as a hard wall, and add tests
+confirming that public routes and packaged artifacts contain no secret value.
+Use the pinned SDK or host binding for secret reads; do not assume
+`petal::sdk::store_get` reads the secret namespace.
 
-```rust
-#[derive(Clone, Debug, PartialEq, Eq, bloom::BloomType)]
-pub struct Quote {
-    pub amount_in: u128,
-    pub amount_out: u128,
-    pub route: Vec<String>,
-}
+When a read must expose signing state, return only what an auditor needs:
+status, intent, outcome, and non-secret identifiers.
 
-#[derive(Clone, Debug, PartialEq, Eq, bloom::BloomType)]
-pub enum Status {
-    Empty,
-    Filled { at_block: u64 },
-    Error(String),
-}
-```
+## Author checklist
 
-The derive emits a `BloomType` implementation and causes the petal manifest to
-record the struct fields or enum variants. `#[bloom::object]` and
-`#[bloom::capability]` build on the same encoding machinery.
-
-## Built-In Value Types
-
-The canonical type system has built-ins for scalars, bytes, text, collections,
-tuples, and common enums. In Rust, the usual spellings are:
-
-| Rust shape | Bloom type |
-| --- | --- |
-| `bool`, `u8`, `u16`, `u32`, `u64`, `u128` | same scalar |
-| `[u8; 32]`, `ObjectId`, `Hash32`, `UID` | 32-byte scalar |
-| `String` | `String` |
-| `bloom_resource::Bytes` | `bytes` |
-| `Vec<T>` | `vector<T>` |
-| `(A, B, ...)` | `tuple<A, B, ...>` |
-| `Option<T>` | `Option<T>` |
-| `Result<T, E>` | `Result<T, E>` |
-| `BTreeSet<T>` | `set<T>` |
-| `BTreeMap<K, V>` | `map<K, V>` |
-
-`Vec<u8>` is a `vector<u8>`. Use `bloom_resource::Bytes` when the schema should
-be the distinct `bytes` type.
-
-## Function Arguments
-
-Common argument types:
-
-| Rust shape | PTB arg kind |
-| --- | --- |
-| `BloomType` values, built-in scalars, bytes, strings | constant |
-| `&Signer` | signer reference |
-| `&Resource<T>` | read-only object |
-| `&mut Resource<T>` | mutable object |
-| `Resource<T>` | consumed object |
-| `&Capability<T>` | capability proof |
-| `Coin<T>` / `&mut Coin<T>` | fungible object handle |
-
-Generic functions are called with runtime `TypeTag` values. The macro emits one
-real export and binds the concrete type arguments for the duration of the call.
-Petal-defined self types use a zero hash placeholder in macro-emitted source;
-the chain resolves that placeholder to the defining petal's content hash.
-Built-in types use Bloom's reserved built-in hash and do not use the self
-placeholder.
-
-## Error Style
-
-Petal entry points normally return the success type directly. Host wrappers
-return `Result<T, PetalError>`, and the examples often use `expect(...)` at the
-entry-point boundary. A panic or trap becomes a petal abort and reverts the PTB.
-
-For testability, production petals often split logic into:
-
-- a public `#[bloom::petal]` function with the simple ABI;
-- an internal `ops` module with `Result`-returning helpers that call the
-  canonical `BloomType` codec.
+- Keep `petal.toml`, `README.md`, and an operational `AGENTS.md` current.
+- Every route's behavior is visible in its route file.
+- Shared code contains no filename- or path-driven endpoint dispatcher.
+- Every writable file defines safe local read behavior.
+- Route capabilities stay within compiled imports and cover successful paths.
+- The package ceiling and per-surface policy cover only intended use.
+- Network egress is allowlisted to the narrowest host, method, and path set.
+- No secret or signature material is reachable through a read handler.
+- Durable state does not overstate external completion.
+- All route components and release packaging validate.
+- No live write was performed without explicit authorization.
