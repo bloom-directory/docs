@@ -1,46 +1,45 @@
 # What is Bloom? :badge[Partial]{warning}
 
-Bloom is a framework for creating agent-safe software components. Its first application is an agentic multi-chain wallet exposed as a virtual filesystem. We call this walletFS.
+Bloom is an agentic multi-chain wallet exposed as a virtual filesystem.
 
 <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', margin: '1.5rem 0' }}>
   <iframe
     src="https://www.youtube.com/embed/JhVoBBCK8eQ"
-    title="/bloom walletFS - Technical Demo"
+    title="Bloom technical demo"
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowFullScreen
   />
 </div>
 
-Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, walletFS exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. walletFS makes onchain work discoverable, auditable, and policy-gated through that interface.
-
+Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. Bloom makes onchain work discoverable, auditable, and policy-gated through that interface.
 
 ```txt
 /bloom/
-  chains/<chain>/...      # live chain state
-  wallets/<name>/...      # public wallet state and staged outbox actions
-  petals/<name>/...       # extensions to walletFS e.g. Hyperliquid, Polymarket, etc.
+  chains/<chain>/...      # live EVM chain state
+  wallets/<name>/...      # public wallet state and staged account actions
+  petals/<name>/...       # installed capability extensions
   watch/<id>/...          # live subscriptions
   simulate/<session>/...  # dry-run calls
   tools/...               # ABI, hashes, units, EIP-712 helpers
 ```
 
-## Current walletFS state
+## Current product state
 
-- read live EVM state as files: balances, blocks, gas, contracts, ABI methods, storage, events, NFTs, ENS, token prices, and address history;
+- read live EVM state and native Solana account state as files;
 - register or import wallets through Broker-hosted custody ceremonies while Signer retains private keys;
-- stage ETH, ERC-20, NFT, contract-call, signing, and DeFi intents by writing plain-language or structured files;
+- stage EVM intents and native SOL transfers through explicit numbered HD accounts;
 - inspect a generated `plan.md` before signing;
 - confirm a staged transaction only after user approval;
-- enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging.
-- extend capabilities through Petals (walletFS agent-safe extensions)
+- enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging;
+- extend capabilities through Petals.
 
-The current product surface is **walletFS**: an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
+Bloom is an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
 
-## Broader direction
+## Petals
 
-Bloom’s broader architecture extends this filesystem model to small, composable, verifiable programs called [Petals](/petals/overview). In the case of walletFS, Petals enable agent-safe wallet-extensions. This allows you and your agent to extend walletFS, safely, to accomplish innovative use cases e.g. a Polymarket trading bot, a Hyperliquid strategy or whatever you and your agent think of. 
+[Petals](/petals/overview) are small, composable, verifiable programs that extend Bloom with agent-safe capabilities such as a Polymarket trading workflow or a Hyperliquid strategy.
 
 ## Status
 
-The current Bloom implementation uses the separate-process [Triad Architecture](/reference/triad-architecture): a key-free Machine runtime, a Broker authorization service, and a Signer custody service. The Machine workspace contains the CLI, VFS, transaction staging, chain readers, Petal host, and optional NFSv4 mount adapter. Broadcast routing is enabled by default on configured chains, while policy, approval, and signing remain mandatory safety boundaries.
+Bloom uses the separate-process [Triad Architecture](/reference/triad-architecture): a key-free Machine runtime, a Broker authorization service, and a Signer custody service. The Machine workspace contains the CLI, VFS, transaction staging, chain readers, Petal host, and optional NFSv4 mount adapter. EVM broadcast routing is enabled by default on configured chains; Solana mainnet broadcasting is disabled by default. Policy, approval, and signing remain mandatory safety boundaries.
