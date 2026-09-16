@@ -69,3 +69,16 @@ cat wallets/alice/0/chains/anvil/outbox/pending/<id>/plan.md
 ```
 
 Confirm only after reading the plan. If fresh approval is required, inspect that exact action's `approval_challenge.json`, complete the Broker-hosted ceremony, and retry the same confirm. Browser approval never broadcasts by itself.
+
+## Inspect Solana from the same account
+
+Fresh configuration includes read-ready `solana-mainnet`. Inspect the selected account before treating a key as the source of funds:
+
+```sh
+cat wallets/alice/0/account.json
+ls wallets/alice/0/chains/solana-mainnet
+cat wallets/alice/0/chains/solana-mainnet/address
+cat wallets/alice/0/chains/solana-mainnet/balance
+```
+
+Solana mainnet broadcasting is disabled by default. Enabling it requires a configured, pinned cluster genesis hash in addition to the normal policy, approval, confirmation, and Signer gates.

@@ -1,6 +1,6 @@
 # Wallets and transactions :badge[Partial]{warning}
 
-Bloom wallets are Broker-projected HD identities. Signer retains the seed-derived private keys; Machine exposes public account inventory, policies, approvals, balances, and outbox state through the filesystem. Machine never creates or opens a local keystore.
+Bloom wallets are Broker-projected HD identities. Signer retains root and derived private keys; Machine exposes public account inventory, policies, approvals, balances, and outbox state through the filesystem. Machine never creates or opens a local keystore.
 
 ## Register a wallet
 
@@ -25,14 +25,16 @@ cat /bloom/wallets/alice/0/address.sol
 cat /bloom/wallets/alice/0/chains/anvil/balance.json
 ```
 
-`account.json` records the public account identity, including available EVM and Solana keys, their fingerprints, and derivation paths. Account-scoped paths prevent an agent from silently selecting a different derived key.
+`account.json` records the public account identity, including available EVM and Solana keys, their fingerprints, and derivation paths. Account number is a stable Signer-chosen derivation identity, not list position: select the matching `number` in `accounts.json`, then verify the fingerprint and path in `account.json`. Account-scoped paths prevent an agent from silently selecting a different derived key.
 
 Create another derived account through the wallet's account-creation control, then read `accounts.json` again to obtain its number before using it:
 
 ```sh
-printf '%s\n' '<request_id>' > /bloom/wallets/alice/new
+printf '%s\n' '{"request_id":"<id>"}' > /bloom/wallets/alice/new
 cat /bloom/wallets/alice/accounts.json
 ```
+
+The request starts one custody ceremony that allocates both EVM and Solana children for the next Signer-chosen account number. Reusing the same request ID resumes that request; do not reuse it for a different account.
 
 Import, recovery, credential changes, and deletion also use Broker-hosted custody ceremonies. Never put a private key, passkey output, mnemonic, or recovery secret in a mounted file, command argument, environment variable, or agent prompt.
 

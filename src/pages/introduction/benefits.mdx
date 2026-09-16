@@ -20,9 +20,10 @@ Bloom is designed around the operating model agents already understand: files. O
 ## For developers and integrators
 
 - **A narrow wallet backend primitive.** Bloom can sit behind existing UX as transaction planning, simulation, policy, audit, and signing infrastructure.
-- **Multi-chain read surface.** `bloom init` configures Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, and local Anvil for reads.
+- **Multi-chain read surface.** `bloom init` configures Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, Arc, local Anvil, and Solana mainnet for reads.
+- **Explicit account selection.** An agent acts through a numbered derived account and its authenticated public inventory rather than implicitly selecting a key.
 - **Composable tooling.** Hashing, ABI, RLP, unit conversion, EIP-712, ENS, prices, simulation, watches, and DeFi routing appear as paths.
-- **Clear safety boundary.** Reads are broadly available; value-moving actions still require the applicable policy, approval, signing, and confirmation gates. Operators can disable any chain with `allow_broadcast = false`.
+- **Clear safety boundary.** Reads are broadly available; value-moving actions still require the applicable policy, approval, signing, and confirmation gates. EVM broadcast routing defaults on per configured chain; Solana mainnet requires explicit enablement plus a verified genesis pin.
 
 ## Strategic benefit
 
