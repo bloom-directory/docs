@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
+    "vite": "^8.3.0",
+    "vocs": "^2.9.0",
     "waku": "1.0.0-rc.0"
   },
   "devDependencies": {
