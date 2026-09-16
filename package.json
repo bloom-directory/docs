@@ -15,7 +15,7 @@
     "waku": "1.0.0-rc.0"
   },
   "devDependencies": {
-    "typescript": "latest"
+    "typescript": "^7.0.2"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
