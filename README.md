@@ -5,7 +5,7 @@
 <h1 align="center">Bloom Docs</h1>
 
 <p align="center">
-  User-facing documentation for Bloom, the agentic Ethereum wallet mounted as a virtual filesystem.
+  User-facing documentation for Bloom, the agentic EVM and Solana wallet mounted as a virtual filesystem.
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
   <a href="https://bloom.directory/SKILL.md"><strong>Agent setup skill</strong></a>
 </p>
 
-Bloom turns Ethereum into a directory your agent can inspect and write to with ordinary filesystem tools. Reads are onchain queries, writes are staged wallet intents, and every meaningful action leaves reviewable files behind.
+Bloom turns EVM and native Solana wallet workflows into a directory your agent can inspect and write to with ordinary filesystem tools. Wallets expose explicit numbered HD accounts; reads are onchain queries, writes are staged wallet intents, and every meaningful action leaves reviewable files behind.
 
 If you are here to use Bloom, start with the **[live docs](https://docs.bloom.directory)**. The docs cover setup, the mounted `/bloom` filesystem, wallet transaction review, policy controls, and power-user workflows that combine chain reads, encoding helpers, simulations, watches, and transaction staging.
 

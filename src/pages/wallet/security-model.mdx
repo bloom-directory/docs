@@ -11,9 +11,9 @@ Bloom separates staging, authorization, and custody instead of trusting one agen
 
 ## Operational defaults
 
-- Private keys and passkey output are never readable through the mounted filesystem or Machine.
+- Private keys, passkey output, mnemonics, seeds, passphrases, and derived private keys are never readable through the mounted filesystem or Machine.
 - Transaction writes create pending plans, not immediate broadcasts.
-- Per-chain broadcast routing is enabled by default, but it does not bypass policy, approval, confirmation, or Signer checks. Set `allow_broadcast = false` wherever sends are not intended.
+- Broadcasting is available on every configured chain, but it does not bypass policy, approval, confirmation, or Signer checks. Solana transactions additionally require a valid, verified genesis pin.
 - Side-effecting operations and authority decisions produce hash-chained, signed, or receipt-bound audit evidence.
 
 ## Policy controls

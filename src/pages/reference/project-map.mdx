@@ -10,10 +10,12 @@ This map connects public docs concepts to the source that implements the current
 | Machine binary | `crates/bloom-machine/src/` |
 | Machine-to-Broker protocol client and projection cache | `crates/bloom-machine-client/src/` |
 | Key-free daemon wiring and execution adapters | `crates/bloom-daemon/src/` |
-| Virtual filesystem router and handlers | `crates/bloom-vfs/src/` |
+| Virtual filesystem router, account-scoped chain/outbox routing, and handlers | `crates/bloom-vfs/src/` |
 | Vendored in-filesystem docs | `crates/bloom-vfs/src/docs/` |
-| Unsigned transaction staging, simulation, signing orchestration, broadcast, and nonce management | `crates/bloom-tx/src/` |
+| EVM unsigned transaction staging, simulation, signing orchestration, broadcast, and nonce management | `crates/bloom-tx/src/` |
 | EVM chain engines and RPC pools | `crates/bloom-evm/src/`, `crates/bloom-rpc/src/` |
+| Solana JSON-RPC client and genesis-bound cluster checks | `crates/bloom-solana/src/` |
+| Native SOL transfer staging, signing, broadcast, durable outbox, and reconciliation | `crates/bloom-solana-tx/src/` |
 | Paid HTTP, x402, and MPP | `crates/bloom-paid-http/src/`, `crates/bloom-paid-x402/src/`, `crates/bloom-paid-mpp/src/` |
 | Watch subscriptions and polling executor | `crates/bloom-watch/src/` |
 | NFS mount adapter | `crates/bloom-mount/src/` |

@@ -9,7 +9,7 @@ agent, shell, or application
     │
     ├─ mounted filesystem: /bloom
     │     ├─ reads:  ls /bloom/chains, cat /bloom/status/daemon.json
-    │     └─ writes: echo ... > /bloom/wallets/<name>/chains/<chain>/outbox/new.tx
+    │     └─ writes: echo ... > /bloom/wallets/<name>/<account>/chains/<chain>/outbox/new.tx
     │
     ▼
 Machine (bloom serve)
@@ -23,6 +23,12 @@ Machine (bloom serve)
 `bloom serve --mount /bloom` owns the long-running Machine. Other CLI commands and the `bloom vfs` facade proxy to that running process; they do not construct a one-shot Machine or embed a custody fallback.
 
 Machine may cache authenticated public projections, but those files are not authority. Wallet keys, credential secrets, approval state, canonical policy custody, and signing remain outside Machine.
+
+## HD wallet and chain model
+
+A wallet is a Broker/Signer-managed HD identity, not a single address. Machine projects `wallets/<wallet>/accounts.json`; each numbered account has an `account.json` inventory and account-scoped EVM and Solana public-key paths. Balances, nonces, outboxes, and delegated Petal sessions live beneath that selected account, so a transaction path names the account that owns its key material.
+
+EVM chains retain Bloom's intent-driven transaction engine. Solana clusters use a native SOL transfer engine with the same stage → review → confirm → broadcast shape, while preserving Solana-specific message, blockhash, fee, signature, and reconciliation facts. A Solana cluster is configured with a pinned genesis hash, and broadcast is rejected unless the configured and observed cluster identities match.
 
 ## NFS mount surface
 
@@ -38,8 +44,9 @@ The mount's OS permissions remain part of the boundary. Production packaging sco
 | `bloom-daemon` | Wires key-free Machine state, config, chain services, VFS, IPC, ENS, watches, and execution adapters. |
 | `bloom-machine-client` | Authenticated Machine-to-Broker client and rollback-safe public projection cache. |
 | `bloom-vfs` | Path router, handlers, public projections, vendored docs, and mounted action surfaces. |
-| `bloom-tx` | Unsigned transaction staging, simulation, Broker signing orchestration, broadcast, and nonce management. |
+| `bloom-tx` | EVM unsigned transaction staging, simulation, Broker signing orchestration, broadcast, and nonce management. |
 | `bloom-evm` / `bloom-rpc` | EVM chain reads, RPC pools, endpoint health, and failover. |
+| `bloom-solana` / `bloom-solana-tx` | Solana RPC and cluster-identity checks; native SOL transfer staging, signing, broadcast, and reconciliation. |
 | `bloom-petals` | Installed Petal host, package validation, route execution, and payload-bearing signing bridge. |
 | `bloom-paid-http`, `bloom-paid-x402`, `bloom-paid-mpp` | Free and paid HTTP planning and protocol handling. |
 | `bloom-watch` | Subscription registry and polling executor. |

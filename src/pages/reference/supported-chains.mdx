@@ -3,6 +3,7 @@
 `bloom init` ships read-ready defaults for:
 
 - Ethereum
+- Solana
 - Base
 - Arbitrum
 - Optimism
@@ -14,10 +15,12 @@
 - HyperEVM
 - Tempo
 - Robinhood Chain
+- Arc
 - local Anvil
 
-Reads, simulations, and planning work with zero configuration when public RPC defaults are sufficient. Per-chain broadcast routing is enabled by default. This does not bypass policy, approval, confirmation, or Signer checks; set `allow_broadcast = false` wherever live sends are not intended.
+It also configures Solana mainnet under `solana-mainnet`. Solana native-balance reads and native SOL transfers are available through numbered wallet accounts.
 
+Reads, EVM simulations, planning, and broadcasting work with zero configuration when public RPC defaults are sufficient. Broadcasting never bypasses policy, approval, confirmation, or Signer checks.
 ## Chain paths
 
 ```txt
@@ -33,7 +36,7 @@ Reads, simulations, and planning work with zero configuration when public RPC de
 
 Custom EVM chains are added to `~/.bloom/config.toml` under `[chains.<name>]`. The name becomes the filesystem path segment under `/bloom/chains/<name>/`, so keep it lowercase and shell-friendly.
 
-A minimal read-only chain entry needs a display name, numeric EVM `chain_id`, native token metadata, and at least one RPC endpoint:
+A minimal custom chain entry needs a display name, numeric EVM `chain_id`, native token metadata, and at least one RPC endpoint:
 
 ```toml
 [chains.mychain]
@@ -43,7 +46,6 @@ display_name = "My Chain"
 native_symbol = "MYC"
 native_decimals = 18
 rpc_urls = ["https://rpc.mychain.example"]
-allow_broadcast = false
 ```
 
 For richer endpoint selection, use `rpc_endpoints` instead of `rpc_urls`:
@@ -64,7 +66,6 @@ Optional fields:
 
 - `etherscan_api_url` — Etherscan-compatible explorer API base URL for ABI/source/address-history surfaces.
 - `legacy_tx = true` — use legacy `gas_price` transactions instead of EIP-1559 fee fields.
-- `allow_broadcast = false` — disable live sends on this chain. This is an operator routing control, not a replacement for policy or approval.
 
 After editing config, restart the daemon and verify the mounted paths:
 
@@ -74,7 +75,24 @@ ls /bloom/chains/mychain
 cat /bloom/chains/mychain/head/number
 ```
 
-If reads fail, check `/bloom/status/backends/summary.json` and the daemon logs first. Custom chains must provide at least one usable `rpc_urls` or `rpc_endpoints` entry.
+If reads fail, check `/bloom/status/backends/summary.json` and the daemon logs first. Custom EVM chains must provide at least one usable `rpc_urls` or `rpc_endpoints` entry.
+
+## Configuring Solana clusters
+
+Solana clusters live under `[solana_chains.<name>]`. The table key and its `name` must match, and names cannot overlap an EVM chain name. Each cluster needs one or more HTTP(S) endpoints. `expected_genesis_base58` pins the cluster identity; a valid 32-byte base58 genesis hash is required before Bloom submits transactions.
+
+```toml
+[solana_chains.solana-mainnet]
+name = "solana-mainnet"
+expected_genesis_base58 = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+
+[[solana_chains.solana-mainnet.endpoints]]
+url = "https://api.mainnet.solana.com"
+weight = 100
+http_only = true
+```
+
+Use a cluster-specific genesis hash for every non-mainnet configuration that will submit transactions. Bloom verifies the live RPC genesis hash during transaction staging and again before broadcast.
 
 ## Etherscan-backed surfaces
 

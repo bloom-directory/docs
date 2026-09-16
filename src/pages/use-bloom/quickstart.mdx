@@ -25,7 +25,7 @@ Because everything is a file, the agent can answer by exploring the mounted tree
 
 ## Your first ten minutes
 
-1. **Use a local network first.** Ask: "Set me up with local Anvil so nothing here involves real money, and disable broadcasting on every public chain." Broadcast routing is enabled by default for configured chains, so verify `allow_broadcast = false` wherever you do not intend to send.
+1. **Use a local network first.** Ask: "Set me up with local Anvil so nothing here involves real money, and do not stage or confirm transactions on public chains." Broadcasting is available on every configured chain, so treat policy, approval, confirmation, and Signer checks as the required safety boundaries.
 2. **Register a wallet.** Ask: "Start passkey registration for a new wallet, show me the exact registration status, and do not open a ceremony URL until you verify the requested wallet name." Machine projects the ceremony while Signer retains the key.
 3. **Read chain state.** Ask: "What's the balance of vitalik.eth?" Your agent should answer by reading files rather than by holding a private RPC integration in its own context.
 4. **Stage, do not send, a transaction.** Ask: "Draft a transaction sending a tiny amount of test ETH to this address, but don't do anything beyond staging it." Then inspect the plan.

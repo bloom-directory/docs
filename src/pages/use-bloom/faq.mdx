@@ -7,11 +7,9 @@ description: Supported chains, cost, keys, existing wallets, and where Bloom is 
 
 ## Which chains work?
 
-Bloom's current wallet surface targets EVM-compatible chains: if a chain speaks standard Ethereum RPC, Bloom can model it through the wallet filesystem.
+Bloom supports EVM-compatible chains and native Solana. The default configuration includes Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, Arc, local Anvil, and `solana-mainnet`.
 
-The current docs cover Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, and a local Anvil dev chain for consequence-free experiments.
-
-Solana and Canton are planned surfaces, not shipped user paths today.
+Solana supports native SOL balance reads and native SOL transfers through numbered HD wallet accounts. Broadcasting is available on configured Solana chains when their genesis hash is pinned and verified, and remains subject to policy, ceremony, confirmation, and Signer checks.
 
 For technical chain details, see [Supported chains](/reference/supported-chains).
 
@@ -47,6 +45,6 @@ Then ask it to inspect the mounted Bloom filesystem and summarize the docs it fi
 
 ## The bigger picture
 
-Bloom is larger than walletFS. The long-term bet is that agents need software components they can inspect, verify, and safely compose. Petals are Bloom's path toward that: agent-readable, policy-aware capabilities that can be reused across wallets, protocols, and products.
+Bloom is more than a wallet. The long-term bet is that agents need software components they can inspect, verify, and safely compose. Petals are Bloom's path toward that: agent-readable, policy-aware capabilities that can be reused across wallets, protocols, and products.
 
 Bloom starts with crypto because the stakes are high and the security model has to be real. If the model works where mistakes cost money, it can generalize to other agent-controlled software.

@@ -77,18 +77,19 @@ Because writes are just files, a shell pipeline can query state, compute an amou
 
 ```sh
 WALLET=alice
+ACCOUNT=0
 CHAIN=anvil
 RECIPIENT=$(cat /bloom/addressbook/treasury)
-BALANCE_WEI=$(cat /bloom/wallets/$WALLET/chains/$CHAIN/balance)
+BALANCE_WEI=$(cat /bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/balance)
 HALF_WEI=$(printf '%s\n' "$BALANCE_WEI" | awk '{ print int($1 / 2) }')
 AMOUNT_ETH=$(cat /bloom/tools/unit/format/$HALF_WEI/eth)
 
 printf 'send %s eth to %s on %s\n' "$AMOUNT_ETH" "$RECIPIENT" "$CHAIN" \
-  > /bloom/wallets/$WALLET/chains/$CHAIN/outbox/new.tx
+  > /bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/new.tx
 
-PENDING=$(ls -t /bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending | head -n1)
-cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/plan.md"
-cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$PENDING/policy_check.json" | jq .
+PENDING=$(ls -t /bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/pending | head -n1)
+cat "/bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/pending/$PENDING/plan.md"
+cat "/bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/pending/$PENDING/policy_check.json" | jq .
 ```
 
 <ExpectedOutput />
@@ -147,6 +148,7 @@ set -euo pipefail
 
 CHAIN=${CHAIN:-ethereum}
 WALLET=${WALLET:-alice}
+ACCOUNT=${ACCOUNT:-0}
 TOKEN=${TOKEN:-0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48} # USDC
 SPENDER=${SPENDER:-0x111111125421cA6dc452d289314280a0f8842A65}
 MIN_HUMAN=${MIN_HUMAN:-1000}
@@ -164,7 +166,7 @@ ge_uint() {
   (( ${#a} > ${#b} )) || { (( ${#a} == ${#b} )) && [[ "$a" > "$b" || "$a" == "$b" ]]; }
 }
 
-owner=$(cat "/bloom/wallets/$WALLET/address")
+owner=$(cat "/bloom/wallets/$WALLET/$ACCOUNT/address.evm")
 spender=$(cat "/bloom/tools/address/checksum/$SPENDER")
 decimals=$(cat "/bloom/chains/$CHAIN/contracts/$TOKEN/methods/decimals.read" | extract_decoded_uint)
 
@@ -190,11 +192,11 @@ calldata=$(cat "/bloom/tools/abi/encode/$session/out.hex")
 
 printf '{"chain":"%s","to":"%s","data":"%s","value":"0","description":"approve spender up to %s units"}\n' \
   "$CHAIN" "$TOKEN" "$calldata" "$TARGET_HUMAN" \
-  > "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/new.tx"
+  > "/bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/new.tx"
 
-pending=$(ls -t "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending" | head -n1)
+pending=$(ls -t "/bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/pending" | head -n1)
 echo "Staged approval intent: $pending"
-cat "/bloom/wallets/$WALLET/chains/$CHAIN/outbox/pending/$pending/plan.md"
+cat "/bloom/wallets/$WALLET/$ACCOUNT/chains/$CHAIN/outbox/pending/$pending/plan.md"
 ```
 
 <ExpectedOutput>Expected output: allowance already high enough</ExpectedOutput>

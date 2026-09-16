@@ -1,15 +1,15 @@
 # Petals :badge[Partial]{warning}
 
-A Petal is a local, off-chain package that adds new files to walletFS. It
+A Petal is a local, off-chain package that adds new files to Bloom. It
 contains a filesystem-shaped tree of routes, each compiled to its own
 WebAssembly component, plus a manifest that declares exactly which host
 authority the package is allowed to use. Bloom mounts the tree read/write under
 `/petals/<name>/`, so agents and people work with a Petal the same way they
-work with the rest of walletFS: `ls`, `cat`, and write a file.
+work with the rest of Bloom: `ls`, `cat`, and write a file.
 
 Petals do not run on a chain, are not called through transaction blocks, and
 have no object model of their own. Everything a Petal can reach — HTTP, storage,
-signing, key derivation, the transaction outbox, chain reads, walletFS itself —
+signing, key derivation, the transaction outbox, chain reads, Bloom itself —
 is an explicit capability mediated by Bloom.
 
 ## Why this shape

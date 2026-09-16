@@ -1,17 +1,17 @@
 # Filesystem guide :badge[Partial]{warning}
 
-Bloom's Machine VFS is normally mounted at `/bloom`. Use standard shell tools against that mount: reads are `cat`/`ls`, and writes stage actions or configuration proposals.
+Bloom's Machine VFS is normally mounted at `/bloom`. Standard shell tools are the interface: reads inspect chain and wallet state; writes stage a concrete action or configuration proposal.
 
 ## Top-level layout
 
 | Path | Purpose |
 | --- | --- |
-| `/bloom/chains/<chain>/` | Chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
-| `/bloom/wallets/` | Broker-projected wallets, passkey registrations, canonical policy custody, Sealed Approvals, balances, nonce, and staged outbox actions. |
-| `/bloom/petals/<name>/` | Installed applications such as Enso, with package-defined routes and capabilities. |
+| `/bloom/chains/<chain>/` | EVM chain heads, blocks, addresses, contracts, gas, txs, receipts, mempool, and Etherscan-backed history. |
+| `/bloom/wallets/` | Broker-projected wallet inventories, numbered HD accounts, custody operations, policies, Sealed Approvals, balances, and staged outbox actions. |
+| `/bloom/petals/<name>/` | Installed applications with package-defined routes and capabilities. |
 | `/bloom/requests/` | Free and paid HTTP requests with staged review and confirmation. |
 | `/bloom/watch/<id>/` | Polling subscriptions for balances, blocks, gas, and events. |
-| `/bloom/simulate/<session>/` | `eth_call` and state-override sandboxes without signing or broadcast. |
+| `/bloom/simulate/<session>/` | EVM `eth_call` and state-override sandboxes without signing or broadcast. |
 | `/bloom/tools/` | Hashes, ABI, RLP, base64, hex, units, EIP-712, and address helpers. |
 | `/bloom/prices/` | DefiLlama spot prices and 24h changes. |
 | `/bloom/addressbook/` | Local petname directory. |
@@ -19,7 +19,7 @@ Bloom's Machine VFS is normally mounted at `/bloom`. Use standard shell tools ag
 | `/bloom/status/` | Machine health, backend declarations, audit state, cache counts, and public authority projections. |
 | `/bloom/docs/` | In-tree operational docs vendored into the VFS. |
 
-Wallet keys and authority do not live in this tree. Machine projects public state from Broker and sends exact payloads through Broker to Signer when signing is authorized.
+Wallet keys and authority do not live in this tree. A wallet is an HD identity with numbered accounts. Each account can expose EVM and Solana public keys; its chain state and outbox are scoped to that account. Machine projects public state from Broker and sends exact payloads through Broker to Signer when signing is authorized.
 
 ## Read examples
 
@@ -27,6 +27,10 @@ Wallet keys and authority do not live in this tree. Machine projects public stat
 cat /bloom/chains/base/head/number
 cat /bloom/chains/ethereum/gas
 cat /bloom/chains/ethereum/contracts/<address>/abi
+cat /bloom/wallets/alice/accounts.json
+cat /bloom/wallets/alice/0/account.json
+cat /bloom/wallets/alice/0/address.evm
+cat /bloom/wallets/alice/0/address.sol
 cat /bloom/prices/spot/eth.usd
 cat /bloom/ens/vitalik.eth/address
 cat /bloom/status/daemon.json
@@ -39,9 +43,9 @@ cat /bloom/status/daemon.json
 printf 'alice\n' > /bloom/wallets/new
 cat /bloom/wallets/registrations/alice/status.json
 
-# Stage a transaction; this does not sign or send it.
+# Stage an EVM transaction from account 0; this does not sign or send it.
 echo 'send 0.01 eth to 0x... on anvil' \
-  > /bloom/wallets/alice/chains/anvil/outbox/new.tx
+  > /bloom/wallets/alice/0/chains/anvil/outbox/new.tx
 ```
 
-Verify a registration's `requested_name` before opening its `ceremony_url`. For transaction approval, read the concrete action's plan and `approval_challenge.json`; browser completion activates approval but execution requires a separate confirm retry.
+Verify a registration's `requested_name` before opening its `ceremony_url`. For every transaction, inspect the concrete action's plan. If confirmation reports that fresh owner approval is required, inspect that action's `approval_challenge.json`, complete its ceremony, and retry the same confirm; transactions covered by existing authority do not project a challenge.
