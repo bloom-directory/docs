@@ -1,6 +1,6 @@
 # Wallets and transactions :badge[Partial]{warning}
 
-Bloom wallets are Broker-projected public identities whose private keys remain in Signer. Machine exposes addresses, policies, approvals, and outbox state through the filesystem, but it does not create or open a local keystore.
+Bloom wallets are Broker-projected HD identities. Signer retains the seed-derived private keys; Machine exposes public account inventory, policies, approvals, balances, and outbox state through the filesystem. Machine never creates or opens a local keystore.
 
 ## Register a wallet
 
@@ -11,41 +11,68 @@ printf 'alice\n' > /bloom/wallets/new
 cat /bloom/wallets/registrations/alice/status.json
 ```
 
-Verify that `requested_name` is `alice` before opening its single-use `ceremony_url`, polling it, or cancelling it. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED`, then inspect the public projection:
+Verify that `requested_name` is `alice` before opening its single-use `ceremony_url`, polling it, or cancelling it. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED`.
+
+## Use a numbered HD account
+
+A wallet's root shows its authenticated account inventory. Chain keys and transaction routes are deliberately not exposed at the wallet root: choose the numbered account that will own the action.
 
 ```sh
-cat /bloom/wallets/alice/address
-cat /bloom/wallets/alice/public_key
-cat /bloom/wallets/alice/policy.json
+cat /bloom/wallets/alice/accounts.json
+cat /bloom/wallets/alice/0/account.json
+cat /bloom/wallets/alice/0/address.evm
+cat /bloom/wallets/alice/0/address.sol
+cat /bloom/wallets/alice/0/chains/anvil/balance.json
 ```
 
-Cancel a live registration by writing `cancel` to `/bloom/wallets/registrations/alice/cancel`.
+`account.json` records the public account identity, including available EVM and Solana keys, their fingerprints, and derivation paths. Account-scoped paths prevent an agent from silently selecting a different derived key.
 
-Import, recovery, credential changes, and deletion also use Broker-hosted custody ceremonies. Never put a private key, passkey output, or recovery secret in a mounted file, command argument, environment variable, or agent prompt.
+Create another derived account through the wallet's account-creation control, then read `accounts.json` again to obtain its number before using it:
 
-## Stage an intent
+```sh
+printf '%s\n' '<request_id>' > /bloom/wallets/alice/new
+cat /bloom/wallets/alice/accounts.json
+```
+
+Import, recovery, credential changes, and deletion also use Broker-hosted custody ceremonies. Never put a private key, passkey output, mnemonic, or recovery secret in a mounted file, command argument, environment variable, or agent prompt.
+
+## Stage an EVM intent
 
 ```sh
 echo 'send 0.01 eth to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 on anvil' \
-  > /bloom/wallets/alice/chains/anvil/outbox/new.tx
+  > /bloom/wallets/alice/0/chains/anvil/outbox/new.tx
 ```
 
 Machine parses the intent, fills public defaults, simulates where possible, and creates a pending directory.
 
+## Stage a native Solana transfer
+
+Solana transfers use the same account-scoped outbox lifecycle. The initial native-transfer surface accepts strict JSON with a base58 destination and an amount in lamports. When a wallet has multiple active Solana children, bind the transfer to one with `account_fingerprint`.
+
+```sh
+cat > /tmp/sol-transfer.json <<'EOF'
+{"destination":"<base58-public-key>","lamports":1000000,"account_fingerprint":"<fingerprint>"}
+EOF
+cp /tmp/sol-transfer.json \
+  /bloom/wallets/alice/0/chains/solana-mainnet/outbox/new.tx
+```
+
+Bloom verifies the configured cluster genesis hash before staging and broadcasting. A staged transfer carries the exact message, fee quote, blockhash, and validity height. If its blockhash expires, restage it; approval and signatures are never reused for a replacement.
+
 ## Review, approve, and confirm
 
 ```sh
-ls /bloom/wallets/alice/chains/anvil/outbox/pending
-cat /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/plan.md
-cat /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/policy_check.json
-printf 'confirm\n' > /bloom/wallets/alice/chains/anvil/outbox/pending/<id>/confirm
+ls /bloom/wallets/alice/0/chains/anvil/outbox/pending
+cat /bloom/wallets/alice/0/chains/anvil/outbox/pending/<id>/plan.md
+cat /bloom/wallets/alice/0/chains/anvil/outbox/pending/<id>/policy_check.json
+printf 'confirm\n' > /bloom/wallets/alice/0/chains/anvil/outbox/pending/<id>/confirm
 ```
 
 If Broker requires fresh owner approval, the confirm fails closed after projecting `approval_challenge.json`. Read it from that exact action, verify the action ID, review digest, and expiry, then deliberately open or forward its `ceremony_url`.
 
-After the ceremony completes, retry the same confirm. Broker authorizes the exact payload, Signer checks the approval bindings and signs, and Machine broadcasts when permitted. Browser completion never broadcasts by itself.
+After the ceremony completes, retry the same confirm. Broker authorizes the exact payload, Signer checks the account key scope and approval bindings, and Machine broadcasts when the chain permits it. Browser completion never broadcasts by itself.
 
-Successful entries move to `outbox/sent/<id>/`; terminal failures are projected under `outbox/failed/<id>/`.
+Successful entries move to `outbox/sent/<id>/`; terminal failures are projected under `outbox/failed/<id>/`. For Solana, `sent` means a submission may have been attempted; read the receipt and reconciliation result rather than treating it as finality.
 
 ## Policy updates
 

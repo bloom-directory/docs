@@ -7,11 +7,9 @@ description: Supported chains, cost, keys, existing wallets, and where Bloom is 
 
 ## Which chains work?
 
-Bloom's current wallet surface targets EVM-compatible chains: if a chain speaks standard Ethereum RPC, Bloom can model it through the wallet filesystem.
+Bloom supports EVM-compatible chains and native Solana. The default configuration includes Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, Arc, local Anvil, and `solana-mainnet`.
 
-The current docs cover Ethereum, Base, Tempo, Robinhood Chain, Arbitrum, Optimism, Polygon, BNB Smart Chain, Avalanche, Gnosis, Linea, HyperEVM, and a local Anvil dev chain for consequence-free experiments.
-
-Solana and Canton are planned surfaces, not shipped user paths today.
+Solana supports native SOL balance reads and native SOL transfers through numbered HD wallet accounts. Solana mainnet broadcasting is disabled by default; enable it only with a pinned, correct cluster genesis hash.
 
 For technical chain details, see [Supported chains](/reference/supported-chains).
 

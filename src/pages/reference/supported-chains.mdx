@@ -1,6 +1,6 @@
 # Supported chains :badge[Shipped]{success}
 
-`bloom init` ships read-ready defaults for:
+`bloom init` ships read-ready defaults for these EVM networks:
 
 - Ethereum
 - Base
@@ -14,10 +14,12 @@
 - HyperEVM
 - Tempo
 - Robinhood Chain
+- Arc
 - local Anvil
 
-Reads, simulations, and planning work with zero configuration when public RPC defaults are sufficient. Per-chain broadcast routing is enabled by default. This does not bypass policy, approval, confirmation, or Signer checks; set `allow_broadcast = false` wherever live sends are not intended.
+It also configures Solana mainnet under `solana-mainnet`. Solana native-balance reads and native SOL transfers are available through numbered wallet accounts. Solana mainnet broadcasting is disabled by default.
 
+Reads, EVM simulations, and planning work with zero configuration when public RPC defaults are sufficient. EVM broadcast routing is enabled by default. This does not bypass policy, approval, confirmation, or Signer checks; set `allow_broadcast = false` wherever live sends are not intended.
 ## Chain paths
 
 ```txt
@@ -74,7 +76,25 @@ ls /bloom/chains/mychain
 cat /bloom/chains/mychain/head/number
 ```
 
-If reads fail, check `/bloom/status/backends/summary.json` and the daemon logs first. Custom chains must provide at least one usable `rpc_urls` or `rpc_endpoints` entry.
+If reads fail, check `/bloom/status/backends/summary.json` and the daemon logs first. Custom EVM chains must provide at least one usable `rpc_urls` or `rpc_endpoints` entry.
+
+## Configuring Solana clusters
+
+Solana clusters live under `[solana_chains.<name>]`. The table key and its `name` must match, and names cannot overlap an EVM chain name. Each cluster needs one or more HTTP(S) endpoints. `expected_genesis_base58` pins the cluster identity; Bloom requires a valid 32-byte base58 genesis hash before it permits broadcasting.
+
+```toml
+[solana_chains.solana-mainnet]
+name = "solana-mainnet"
+expected_genesis_base58 = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+allow_broadcast = false
+
+[[solana_chains.solana-mainnet.endpoints]]
+url = "https://api.mainnet.solana.com"
+weight = 100
+http_only = true
+```
+
+Use a cluster-specific genesis hash when enabling broadcast for a non-mainnet configuration. Bloom verifies the live RPC genesis hash during transaction staging and again before broadcast.
 
 ## Etherscan-backed surfaces
 
