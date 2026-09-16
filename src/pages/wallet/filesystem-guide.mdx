@@ -48,4 +48,4 @@ echo 'send 0.01 eth to 0x... on anvil' \
   > /bloom/wallets/alice/0/chains/anvil/outbox/new.tx
 ```
 
-Verify a registration's `requested_name` before opening its `ceremony_url`. For every transaction, inspect the concrete action's plan and `approval_challenge.json`; browser completion activates approval but execution requires a separate confirm retry.
+Verify a registration's `requested_name` before opening its `ceremony_url`. For every transaction, inspect the concrete action's plan. If confirmation reports that fresh owner approval is required, inspect that action's `approval_challenge.json`, complete its ceremony, and retry the same confirm; transactions covered by existing authority do not project a challenge.

@@ -36,7 +36,7 @@ Reads, EVM simulations, planning, and broadcasting work with zero configuration 
 
 Custom EVM chains are added to `~/.bloom/config.toml` under `[chains.<name>]`. The name becomes the filesystem path segment under `/bloom/chains/<name>/`, so keep it lowercase and shell-friendly.
 
-A minimal read-only chain entry needs a display name, numeric EVM `chain_id`, native token metadata, and at least one RPC endpoint:
+A minimal custom chain entry needs a display name, numeric EVM `chain_id`, native token metadata, and at least one RPC endpoint:
 
 ```toml
 [chains.mychain]
