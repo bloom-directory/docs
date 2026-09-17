@@ -60,6 +60,7 @@ export default defineConfig({
       items: [
         { text: 'Local build and mount', link: '/integrators/quickstart' },
         { text: 'Agent setup', link: '/integrators/agent-setup' },
+        { text: 'Configuring Bloom on Linux', link: '/integrators/configuring-bloom' },
         { text: 'Integrating Bloom', link: '/integrators/integrating' },
       ],
     },
