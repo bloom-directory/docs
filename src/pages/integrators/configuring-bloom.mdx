@@ -1,0 +1,89 @@
+# Configuring Bloom on Linux :badge[Shipped]{success}
+
+This page describes the canonical **production Linux** shape for a Bloom host. It is intentionally different from the same-UID developer launcher in [Local build and mount](/integrators/quickstart): production separates Machine, Broker, and Signer into different Unix principals and uses the signed release package to create their configuration, state, and systemd units.
+
+> [!NOTE]
+> Install a signed Bloom Linux release; do not turn a source checkout into a root service by hand. The installer verifies the release, creates a fresh enrollment for one interactive login, and enables the required systemd units. A current, active systemd user session for that login is required at installation time.
+
+## Service model
+
+For an enrolled login UID such as `1000`:
+
+- **Machine** runs as that interactive login through the user unit `bloom-machine.service`. It exposes the filesystem at `~/bloom`.
+- **Broker** runs as the system account `bloom-broker-1000` through `bloom-broker@1000.service`.
+- **Signer** runs as the system account `bloom-signer-1000` through `bloom-signer@1000.service`.
+- **Session sentinel** runs as the login user through `bloom-session.service`. Its authenticated session socket causes the system `bloom-session@1000.path` unit to start Broker and Signer.
+
+The installer also creates narrowly scoped groups. The login user can talk to Broker, Broker can talk to Signer, and the login user is not a member of the Broker–Signer data-plane group. A separate revocation group reaches only control sockets. Do not replace these accounts, groups, or socket permissions with a shared service user or broad sudo access.
+
+Machine, Broker, and Signer are separate services because the Machine is the user-facing filesystem process, while Broker mediates policy and ceremonies and Signer retains private key material. Machine is not a signing service.
+
+## Filesystem mount
+
+Machine serves the VFS locally and mounts it at `~/bloom`. The packaged Linux setup allocates a per-login loopback NFS port and adds one exact `/etc/fstab` authorization for that login's mount. The mount is constrained to the loopback source, target, port, and fixed NFS options, including `user`, `nosuid`, `nodev`, and `noexec`.
+
+This allows the login-owned Machine service to maintain the mount without becoming root or receiving `CAP_SYS_ADMIN`. Do not substitute a general-purpose sudo rule, a privileged Machine unit, or a different NFS export/mount configuration.
+
+Once the service is healthy, use ordinary shell tooling against the mounted filesystem:
+
+```sh
+ls ~/bloom
+cat ~/bloom/docs/README.md
+cat ~/bloom/status/daemon.json
+cat ~/bloom/status/backends/summary.json
+```
+
+## Installed paths and ownership
+
+The release installs the user-facing command at `/usr/bin/bloom` and immutable release content below `/usr/libexec/bloom/current/`. The wrapper selects paths based on the invoking UID; operators should use it rather than pointing services at a development build.
+
+| Path | Purpose | Ownership boundary |
+| --- | --- | --- |
+| `/etc/bloom/<uid>/` | Enrollment configuration and identity material | Root traverses the root; per-service subdirectories are mode `0700` and owned by their principal |
+| `/var/lib/bloom/<uid>/` | Durable Broker, Signer, and Machine state plus audit checkpoints | Each service owns only its own private subtree |
+| `/run/bloom/<uid>/` | Runtime Unix sockets | Created by `tmpfiles` with group-scoped socket access |
+| `/etc/bloom/enrollments/<uid>.json` | Root-owned active enrollment record | Root-managed |
+| `~/bloom` | Mounted, user-facing VFS | Managed by the login-owned Machine service |
+
+For example, Broker configuration and identity live in `/etc/bloom/<uid>/broker/`; Signer configuration and identity live in `/etc/bloom/<uid>/signer/`. Broker and Signer databases belong under their respective `/var/lib/bloom/<uid>/` trees. Treat all of these as service-owned state: do not copy, edit, or change ownership of custody or identity files while services are running.
+
+## Systemd operation and observability
+
+The login user's systemd manager owns `bloom-session.service` and `bloom-machine.service`. The system manager owns the Broker, Signer, ceremony socket, and session path units. The ceremony listener is fixed at `127.0.0.1:18734`; a conflict fails closed instead of silently choosing another port.
+
+Use the intended manager for each unit:
+
+```sh
+# As the enrolled login
+systemctl --user status bloom-session.service bloom-machine.service
+journalctl --user -u bloom-machine.service -o cat
+
+# With host administrator access
+sudo systemctl status "bloom-session@$(id -u).path" \
+  "bloom-broker@$(id -u).service" \
+  "bloom-signer@$(id -u).service"
+sudo journalctl -t "bloom-broker-$(id -u)" -o cat
+sudo journalctl -t "bloom-signer-$(id -u)" -o cat
+```
+
+A healthy machine should have its expected mount and readable status projection. A missing session sentinel or Broker/Signer service is a safety condition to investigate—not a reason to bypass the triad or access private state directly.
+
+## Upgrades, configuration, and removal
+
+Use the signed release installer for upgrades so it can verify the package and coordinate the host-wide release switch. Linux binaries are shared by all enrolled logins, so the installed release digest is a host-level concern; do not replace `/usr/libexec/bloom/current/` or systemd units manually.
+
+The optional AWS KMS Signer profile is an installer-managed pair: credentials and a reviewed non-wildcard egress allowlist must be supplied together. It is not a general network escape hatch.
+
+To remove runtime integration while retaining custody state, use the packaged uninstaller:
+
+```sh
+sudo bloom-uninstall
+```
+
+Permanent deletion is deliberately a separate, explicit operation:
+
+```sh
+sudo bloom-uninstall --purge "delete-bloom-login-$(id -u)"
+```
+
+That confirmation is scoped to the enrolled login. Back up and recovery-plan service-owned custody material before any permanent purge.

@@ -1,5 +1,68 @@
 # Integrating Bloom :badge[Planned]
 
-Bloom can help you achieve your agentic use cases safely and quickly.
+Bloom is a filesystem-first, policy-governed wallet runtime for agents and applications. An integrator can use it in two distinct ways:
 
-We are actively building out this area of Bloom's product surface, so you've found us a bit early. Please reach out directly via hello@bloom.directory if you want to learn more about integrating Bloom into your existing product and we'll set up channels with our team to make it a reality.
+1. **Integrate with a user-managed Bloom runtime.** Your product or agent works through the user's mounted Bloom filesystem and asks the user to complete the normal approval ceremonies.
+2. **Run Bloom infrastructure yourself.** Operate a signed Linux deployment for your own enrolled users, while keeping Machine, Broker, and Signer separated as the production package defines.
+
+The first is the usual product integration path. The second makes you the infrastructure operator and carries the operational responsibility for host security, service lifecycle, release verification, logs, backups, and incident response.
+
+## Integrate with an existing Bloom runtime
+
+Treat Bloom as the source of truth for wallet discovery, plans, approvals, transaction state, and receipts. The normal interface is the mounted filesystem, not private keys, a custom signing library, or an undocumented local API.
+
+Start by discovering the mounted tree and generated documentation:
+
+```sh
+ls /bloom
+cat /bloom/docs/README.md
+cat /bloom/status/daemon.json
+cat /bloom/status/backends/summary.json
+ls /bloom/wallets
+```
+
+Your integration should:
+
+- use the projected filesystem paths and generated plans rather than reconstructing transaction intent itself;
+- read the exact pending plan before asking for confirmation;
+- direct the user to the Broker-hosted ceremony only for the action and expiry that Bloom projects;
+- wait for the resulting status or receipt instead of assuming a browser approval broadcast anything; and
+- treat unavailable Broker/Signer services, policy failures, or disabled broadcast as fail-closed safety signals.
+
+Do not request, store, relay, or derive private keys, passkey output, recovery material, or custody secrets. Machine is not a substitute for a signing backend, and an agent should never bypass a refusal by talking to a chain provider directly.
+
+For a source-based development environment with genuine triad protocols but without production OS-principal isolation, follow [Local build and mount](/integrators/quickstart). For agent-facing behavior, see [Agent setup](/integrators/agent-setup).
+
+## Run Bloom infrastructure yourself
+
+Canonical production Linux deployment is a signed release package—not a source checkout supervised as root. The package creates a fresh enrollment for an interactive login, provisions the service principals and state directories, installs verified binaries and systemd units, and enables the login-user services from an active systemd user session.
+
+The production model is deliberately split:
+
+- the login-owned **Machine** mounts the user-facing VFS at `~/bloom`;
+- the system-owned **Broker** enforces policy and coordinates approvals;
+- the system-owned **Signer** retains private key material; and
+- systemd-owned sockets and narrowly scoped Unix groups enforce the intended communication boundaries.
+
+A self-operated deployment should preserve those boundaries. In particular, do not merge the triad into one root process, grant Machine broad mount capability or sudo, make socket directories world-accessible, or manually reuse custody/configuration from another enrollment.
+
+Operators need a Linux host with systemd, an interactive login with an active user manager during enrollment, loopback NFS mount support, and an operational plan for package verification, journald retention/access, host patching, and custody-safe backup/recovery. The release package uses the host system clock with Bloom's durable guards; it does not require a separate time daemon.
+
+After installation, verify services through both systemd managers and verify the actual mount rather than relying on process startup alone:
+
+```sh
+# As the enrolled login
+systemctl --user status bloom-session.service bloom-machine.service
+mountpoint ~/bloom
+cat ~/bloom/status/daemon.json
+
+# As a host administrator
+sudo systemctl status "bloom-session@$(id -u).path" \
+  "bloom-broker@$(id -u).service" \
+  "bloom-signer@$(id -u).service"
+```
+
+For the complete path layout, service identities, unit ownership, operational checks, and removal semantics, read [Configuring Bloom on Linux](/integrators/configuring-bloom).
+
+> [!NOTE]
+> Bloom's self-operated deployment surface is still evolving. Email [hello@bloom.directory](mailto:hello@bloom.directory) if you want to run Bloom infrastructure or integrate it into an existing product; we'll work with you on the appropriate deployment and support path.
