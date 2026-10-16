@@ -21,6 +21,8 @@ Bloom's Machine VFS is normally mounted at `/bloom`. Standard shell tools are th
 
 Wallet keys and authority do not live in this tree. A wallet is an HD identity with numbered accounts. Each account can expose EVM and Solana public keys; its chain state and outbox are scoped to that account. Machine projects public state from Broker and sends exact payloads through Broker to Signer when signing is authorized.
 
+`/bloom/status/ceremonies.json` reports whether the approved ceremony surfaces are ready. A `local` ceremony needs a browser on the Bloom host; an assigned `remote` ceremony uses the installation's HTTPS relay and can be completed from another device. Copy a projected ceremony URL exactly, including any fragment, and keep it out of logs.
+
 ## Read examples
 
 ```sh
@@ -34,6 +36,7 @@ cat /bloom/wallets/alice/0/address.sol
 cat /bloom/prices/spot/eth.usd
 cat /bloom/ens/vitalik.eth/address
 cat /bloom/status/daemon.json
+cat /bloom/status/ceremonies.json
 ```
 
 ## Write examples
@@ -49,3 +52,5 @@ echo 'send 0.01 eth to 0x... on anvil' \
 ```
 
 Verify a registration's `requested_name` before opening its `ceremony_url`. For every transaction, inspect the concrete action's plan. If confirmation reports that fresh owner approval is required, inspect that action's `approval_challenge.json`, complete its ceremony, and retry the same confirm; transactions covered by existing authority do not project a challenge.
+
+When remote ceremonies report `credentials_expired`, read `/bloom/status/ceremonies-repair.json` for the owner-facing repair summary and exact command. Do not repeatedly retry a remote ceremony until the status becomes ready; local ceremonies can still be available.

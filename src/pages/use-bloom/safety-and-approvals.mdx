@@ -24,6 +24,8 @@ Bloom reduces the blast radius by keeping private keys inside Signer and authori
 
 When a mounted action exposes `approval_challenge.json`, verify its action ID, exact review, and expiry before opening the single-use `ceremony_url`. Ceremony completion and action execution are deliberately separate.
 
+Approval can happen locally in a browser on the Bloom host or remotely through the installation's assigned HTTPS relay. These are distinct passkey origins: a localhost-only passkey cannot approve a hosted link, even in the same browser. If a hosted approval needs a remote passkey, enroll it deliberately on the same wallet, then resume the original action rather than restaging it.
+
 Stay skeptical. Read plans before approving them. Keep caps low.
 
 ## What if my agent mistypes an address?
