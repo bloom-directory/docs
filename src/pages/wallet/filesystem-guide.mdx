@@ -53,4 +53,4 @@ echo 'send 0.01 eth to 0x... on anvil' \
 
 Verify a registration's `requested_name` before opening its `ceremony_url`. For every transaction, inspect the concrete action's plan. If confirmation reports that fresh owner approval is required, inspect that action's `approval_challenge.json`, complete its ceremony, and retry the same confirm; transactions covered by existing authority do not project a challenge.
 
-When remote ceremonies report `credentials_expired`, read `/bloom/status/ceremonies-repair.json` for the owner-facing repair summary and exact command. Do not repeatedly retry a remote ceremony until the status becomes ready; local ceremonies can still be available.
+When remote ceremonies report `credentials_expired`, they are paused until the operator follows the owner-facing repair in `/bloom/status/ceremonies-repair.json`. Do not retry a remote ceremony until `/bloom/status/ceremonies.json` reports it ready again. Local ceremonies remain usable from a browser on the Bloom host.

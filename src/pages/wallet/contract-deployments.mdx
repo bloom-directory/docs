@@ -24,23 +24,26 @@ Replace `31337` with the intended chain ID. This allows Bloom to prepare contrac
 
 ## Start the adapter
 
-Run the adapter from a private scratch directory. It prints an ephemeral RPC URL and the wallet's public sender address:
+Run the adapter from a private location outside the project. It prints an ephemeral RPC URL and the wallet's public sender address:
 
 ```sh
 umask 077
-bloom deploy --wallet alice --chain anvil rpc > rpc.json
+mkdir -p "$HOME/.cache/bloom-deploy"
+chmod 700 "$HOME/.cache/bloom-deploy"
+bloom deploy --wallet alice --chain anvil rpc \
+  > "$HOME/.cache/bloom-deploy/rpc.json"
 ```
 
-Keep `rpc.json` private and untracked. The URL is an owner-scoped submission capability, not a general RPC endpoint.
+Keep `~/.cache/bloom-deploy/rpc.json` private, outside Git, and remove it after the adapter exits. The URL is an owner-scoped submission capability, not a general RPC endpoint.
 
 ## Foundry
 
 Point Foundry at the adapter and use the public sender with `--unlocked`:
 
 ```sh
-FOUNDRY_ETH_RPC_URL="$(jq -r .rpc_url rpc.json)" \
+FOUNDRY_ETH_RPC_URL="$(jq -r .rpc_url "$HOME/.cache/bloom-deploy/rpc.json")" \
 forge script script/Deploy.s.sol:Deploy \
-  --sender "$(jq -r .from rpc.json)" \
+  --sender "$(jq -r .from "$HOME/.cache/bloom-deploy/rpc.json")" \
   --unlocked --broadcast --slow
 ```
 
@@ -48,7 +51,7 @@ Use `vm.startBroadcast()` or its public-address overload in scripts. Remove priv
 
 ## Hardhat and Ignition
 
-Configure the project's Bloom network to use remote accounts, then run its ordinary deployment command:
+Configure the project's Bloom network to use remote accounts and read its URL from the same private `rpc.json` file—for example through an environment variable, never a committed config value. Then run its ordinary deployment command:
 
 ```sh
 npm ci
@@ -58,6 +61,8 @@ npx hardhat ignition deploy ignition/modules/Deployment.ts --network bloom
 ```
 
 Hardhat scripts should use an explicit nonce strategy such as ethers' `NonceManager`; Ignition supplies nonces through its own journal.
+
+See the [runnable Bloom deployment example](https://github.com/bloom-directory/bloom/tree/master/examples/evm-deploy) for the complete Hardhat configuration.
 
 ## Review, approve, and resume
 
@@ -76,7 +81,7 @@ bloom deploy --wallet alice --chain anvil list
 bloom deploy --wallet alice --chain anvil status deploy-REPLACE_WITH_ID
 ```
 
-Retry the same ID after approval or a transport interruption. A changed request on a reserved nonce is refused; do not blindly restart a deployment script.
+After approval or a transport interruption, run `bloom deploy --wallet alice --chain anvil resume <id>` again for the same job ID. A changed request on a reserved nonce is refused; do not blindly restart a deployment script.
 
 A transaction hash is not proof of a successful deployment. Inspect the job's receipt for a successful outcome and the actual `contract_address`, then verify code and ownership as appropriate. Initialization calls are separate transactions and need their own approvals.
 
