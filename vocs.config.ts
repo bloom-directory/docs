@@ -69,6 +69,7 @@ export default defineConfig({
       items: [
         { text: 'Filesystem guide', link: '/wallet/filesystem-guide' },
         { text: 'Wallets and transactions', link: '/wallet/wallets-and-transactions' },
+        { text: 'Contract deployments', link: '/wallet/contract-deployments' },
         { text: 'Use cases', link: '/wallet/use-cases' },
         { text: 'DeFi intents', link: '/wallet/defi-intents' },
         { text: 'Watches and simulation', link: '/wallet/watches-and-simulation' },

@@ -11,7 +11,32 @@ printf 'alice\n' > /bloom/wallets/new
 cat /bloom/wallets/registrations/alice/status.json
 ```
 
-Verify that `requested_name` is `alice` before opening its single-use `ceremony_url`, polling it, or cancelling it. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED`.
+Verify that `requested_name` is `alice` before opening its single-use `ceremony_url`, polling it, or cancelling it. Complete the passkey ceremony and wait for `ceremony_state` to become `COMPLETED`. A local ceremony needs a browser on the Bloom host; a ready remote ceremony can be completed through the installation's HTTPS relay on another device. Copy the complete URL, including any fragment, and do not put it in logs.
+
+## Add a passkey on another device
+
+Bloom can pair a new passkey through the remote relay while an existing wallet passkey approves the enrollment. Request the remote surface, then follow the projected enrollment:
+
+```sh
+printf 'remote\n' > /bloom/wallets/alice/passkeys/new
+cat /bloom/wallets/alice/passkeys/latest/url
+cat /bloom/wallets/alice/passkeys/latest/status
+```
+
+Open the link on the new device. Bloom presents an approval link and a six-digit code; open the approval link on a device that already has a wallet passkey, verify the codes match, and approve the addition there. `already_registered` is a successful no-op: the new device already has a synced or previously enrolled passkey, so do not retry it. A successful recovery replaces all existing passkeys, so add new passkeys afterward for any devices that need to approve again.
+
+## Recover a wallet
+
+If passkeys are lost, start recovery with the wallet name only:
+
+```sh
+printf 'alice\n' > /bloom/wallets/recover
+cat /bloom/wallets/recoveries/alice/status.json
+```
+
+Verify that the status names `alice` before opening its single-use ceremony URL. A local ceremony needs a browser on the Bloom host; a ready remote ceremony uses the installation's HTTPS relay. Copy the complete URL, including any fragment, and keep it out of logs.
+
+Enter the recovery record and secret only in the Broker-hosted browser ceremony—never in a mounted file, command argument, environment variable, or agent prompt. After the operation succeeds, inspect `/bloom/wallets/recoveries/alice/result.json`. Recovery makes the replacement passkey the wallet's only active passkey and revokes the previous ones.
 
 ## Use a numbered HD account
 

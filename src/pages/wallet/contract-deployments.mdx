@@ -1,0 +1,88 @@
+---
+title: Contract deployments
+description: Deploy EVM contracts with Foundry, Hardhat, or Ignition while Bloom retains the signing key and requires an exact owner approval for every transaction.
+---
+
+# Contract deployments :badge[Partial]{warning}
+
+Bloom can provide Foundry, Hardhat, and Ignition with a **loopback-only, token-protected RPC adapter**. Your project uses the selected wallet's public address; Bloom retains the private key, stages each submitted transaction, and requires the owner's normal exact approval.
+
+This is an EVM workflow. It currently uses the wallet's account `0` and is not a reusable permission to sign arbitrary script output.
+
+## Before you start
+
+- Use a funded wallet and a configured EVM chain. Start with a local Anvil chain rather than public funds.
+- Add this numeric-chain creation opt-in through the wallet's normal policy-update ceremony, preserving the rest of the policy:
+
+```json
+{"chain":"evm-31337","destination":"exact"}
+```
+
+Replace `31337` with the intended chain ID. This allows Bloom to prepare contract creations on that chain without a recipient allow-list entry. It does **not** approve a deployment, a follow-up call, or any other transaction.
+
+- Build contracts with the project's normal toolchain. Do not place a private key in a project file, environment variable, or agent context.
+
+## Start the adapter
+
+Run the adapter from a private location outside the project. It prints an ephemeral RPC URL and the wallet's public sender address:
+
+```sh
+umask 077
+mkdir -p "$HOME/.cache/bloom-deploy"
+chmod 700 "$HOME/.cache/bloom-deploy"
+bloom deploy --wallet alice --chain anvil rpc \
+  > "$HOME/.cache/bloom-deploy/rpc.json"
+```
+
+Keep `~/.cache/bloom-deploy/rpc.json` private, outside Git, and remove it after the adapter exits. The URL is an owner-scoped submission capability, not a general RPC endpoint.
+
+## Foundry
+
+Point Foundry at the adapter and use the public sender with `--unlocked`:
+
+```sh
+FOUNDRY_ETH_RPC_URL="$(jq -r .rpc_url "$HOME/.cache/bloom-deploy/rpc.json")" \
+forge script script/Deploy.s.sol:Deploy \
+  --sender "$(jq -r .from "$HOME/.cache/bloom-deploy/rpc.json")" \
+  --unlocked --broadcast --slow
+```
+
+Use `vm.startBroadcast()` or its public-address overload in scripts. Remove private-key reads such as `vm.envUint("PRIVATE_KEY")`.
+
+## Hardhat and Ignition
+
+Configure the project's Bloom network to use remote accounts and read its URL from the same private `rpc.json` file—for example through an environment variable, never a committed config value. Then run its ordinary deployment command:
+
+```sh
+npm ci
+npx hardhat run scripts/deploy.ts --network bloom
+# Or:
+npx hardhat ignition deploy ignition/modules/Deployment.ts --network bloom
+```
+
+Hardhat scripts should use an explicit nonce strategy such as ethers' `NonceManager`; Ignition supplies nonces through its own journal.
+
+See the [runnable Bloom deployment example](https://github.com/bloom-directory/bloom/tree/master/examples/evm-deploy) for the complete Hardhat configuration.
+
+## Review, approve, and resume
+
+A tool submission becomes a durable Bloom deployment job. Read its exact plan and complete the projected owner ceremony. Browser approval activates bounded authority; it does not broadcast the transaction by itself.
+
+Then explicitly continue the same job:
+
+```sh
+bloom deploy --wallet alice --chain anvil resume deploy-REPLACE_WITH_ID
+```
+
+Inspect an interrupted or timed-out job instead of starting another deployment:
+
+```sh
+bloom deploy --wallet alice --chain anvil list
+bloom deploy --wallet alice --chain anvil status deploy-REPLACE_WITH_ID
+```
+
+After approval or a transport interruption, run `bloom deploy --wallet alice --chain anvil resume <id>` again for the same job ID. A changed request on a reserved nonce is refused; do not blindly restart a deployment script.
+
+A transaction hash is not proof of a successful deployment. Inspect the job's receipt for a successful outcome and the actual `contract_address`, then verify code and ownership as appropriate. Initialization calls are separate transactions and need their own approvals.
+
+For a runnable reference project and framework-specific configuration, see the Bloom repository's `examples/evm-deploy` directory.
