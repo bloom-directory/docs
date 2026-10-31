@@ -1,6 +1,8 @@
 # What is Bloom? :badge[Partial]{warning}
 
-Bloom is an agentic multi-chain wallet exposed as a virtual filesystem.
+**The programmable financial harness for AI agents.**
+
+Bloom sits between an agent and its financial actions. The agent works through a virtual filesystem to read state, compose tools, and stage actions; policy, approval, and key custody are enforced by separate services, not by the agent.
 
 <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', margin: '1.5rem 0' }}>
   <iframe
@@ -12,7 +14,7 @@ Bloom is an agentic multi-chain wallet exposed as a virtual filesystem.
   />
 </div>
 
-Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom exposes wallet and chain operations as a filesystem. Agents already know how to navigate files. Bloom makes onchain work discoverable, auditable, and policy-gated through that interface.
+Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom exposes financial capabilities as a filesystem. Agents already know how to navigate files. Bloom makes financial work discoverable, programmable, auditable, and policy-gated through that interface. Today that work runs onchain through self-custodial wallets on EVM-compatible chains and native Solana.
 
 ```txt
 /bloom/
@@ -29,12 +31,13 @@ Instead of handing an agent RPC credentials, signing code, and a Web3 SDK, Bloom
 - read live EVM state and native Solana account state as files;
 - register or import wallets through Broker-hosted custody ceremonies while Signer retains private keys;
 - stage EVM intents and native SOL transfers through explicit numbered HD accounts;
+- compose chain reads, encoding helpers, simulations, and watches with ordinary shell tools;
 - inspect a generated `plan.md` before signing;
 - confirm a staged transaction only after user approval;
 - enforce policy through spend caps, allow/deny lists, contract-call gates, private orderflow settings, and hash-chained audit logging;
 - extend capabilities through Petals.
 
-Bloom is an agentic wallet mounted as a virtual filesystem. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
+Under the hood, Bloom is mounted as a virtual filesystem, with wallets as its custody and signing primitive. Reads are blockchain queries. Writes stage transaction intents. Machine presents and executes the work, Broker enforces policy and approval, and Signer alone holds wallet keys and produces signatures.
 
 ## Petals
 
