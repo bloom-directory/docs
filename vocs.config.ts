@@ -10,9 +10,9 @@ const siteUrl =
     : undefined
 
 export default defineConfig({
-  title: '/bloom | Documentation',
+  title: '/bloom | The programmable financial harness for AI agents.',
   description:
-    'Documentation for Bloom users, integrators, and developers: agentic wallets, filesystem-first crypto workflows, and petals.',
+    'The programmable financial harness for AI agents. Documentation for Bloom users, integrators, and developers: filesystem-first financial workflows, policy-gated actions, and petals.',
   logoUrl: '/logo.svg',
   iconUrl: {
     light: '/favicon-options/bloom-mono-black.svg',

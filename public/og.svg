@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">/bloom Documentation</title>
-  <desc id="desc">Documentation for Bloom.</desc>
+  <title id="title">/bloom: The programmable financial harness for AI agents.</title>
+  <desc id="desc">The programmable financial harness for AI agents. Documentation for Bloom.</desc>
   <rect width="1200" height="630" fill="#f1ece1"/>
   <path d="M0 0h1200v630H0z" fill="#f1ece1"/>
   <g opacity="0.18" stroke="#8a2a3a" stroke-width="1">
@@ -20,5 +20,6 @@
   </g>
   <text x="372" y="276" fill="#8a2a3a" font-family="Instrument Serif, Georgia, 'Times New Roman', serif" font-size="122" font-weight="400" font-style="normal" letter-spacing="-4.3">/</text>
   <text x="402" y="276" fill="#141310" font-family="Instrument Serif, Georgia, 'Times New Roman', serif" font-size="122" font-weight="400" font-style="italic" letter-spacing="-4.3">bloom</text>
-  <text x="382" y="360" fill="#6b6559" font-family="Inter Tight, Arial, sans-serif" font-size="34" font-weight="400" letter-spacing="1.6">Documentation</text>
+  <text x="382" y="352" fill="#141310" font-family="Inter Tight, Arial, sans-serif" font-size="28" font-weight="400">The programmable financial harness for AI agents.</text>
+  <text x="382" y="404" fill="#6b6559" font-family="Inter Tight, Arial, sans-serif" font-size="24" font-weight="400" letter-spacing="1.2">Documentation</text>
 </svg>
