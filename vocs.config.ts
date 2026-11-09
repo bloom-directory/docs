@@ -10,7 +10,14 @@ const siteUrl =
     : undefined
 
 export default defineConfig({
-  title: '/bloom | The programmable financial harness for AI agents.',
+  title: '/bloom/docs | The programmable financial harness for AI agents.',
+  titleTemplate: (path, { siteTitle }) =>
+    path === '/' ? siteTitle : `%s | ${siteTitle}`,
+  // The root and page layouts both render Vocs Head. Only the page has
+  // frontmatter; suppress the root title so navigation cannot leave a stale one.
+  head: (path, { frontmatter }) => frontmatter ? {} : {
+    title: path === '/404' ? 'Page not found | /bloom/docs | The programmable financial harness for AI agents.' : false,
+  },
   description:
     'The programmable financial harness for AI agents. Documentation for Bloom users, integrators, and developers: filesystem-first financial workflows, policy-gated actions, and petals.',
   logoUrl: '/logo.svg',

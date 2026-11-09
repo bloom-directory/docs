@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vocs dev",
     "lint": "tsc --noEmit && node scripts/check-status-badges.mjs",
-    "build": "vocs build && node scripts/copy-markdown-routes.mjs",
+    "build": "vocs build && node scripts/copy-markdown-routes.mjs && node scripts/check-browser-titles.mjs",
     "preview": "vocs preview"
   },
   "dependencies": {
