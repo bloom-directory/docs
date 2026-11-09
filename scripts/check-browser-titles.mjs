@@ -16,6 +16,7 @@ async function pages(dir) {
 
 async function checkTitle(output, expected) {
   const html = await readFile(output, 'utf8')
+  assert.ok(!/<h[1-6]\b[^>]*>\s*(?:title|description):\s/i.test(html), `${output}: exposed frontmatter in a heading`)
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i)?.[1]
   assert.ok(head, `${output}: missing head`)
   const titles = [...head.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map((match) => match[1])
