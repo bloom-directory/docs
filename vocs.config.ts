@@ -11,6 +11,8 @@ const siteUrl =
 
 export default defineConfig({
   title: '/bloom | The programmable financial harness for AI agents.',
+  titleTemplate: (path, { siteTitle }) =>
+    path === '/' ? siteTitle.replace('/bloom |', '/bloom/docs |') : `%s – ${siteTitle}`,
   description:
     'The programmable financial harness for AI agents. Documentation for Bloom users, integrators, and developers: filesystem-first financial workflows, policy-gated actions, and petals.',
   logoUrl: '/logo.svg',
