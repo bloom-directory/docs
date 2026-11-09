@@ -34,7 +34,7 @@ for (const source of sourcePages) {
     continue
   }
   const content = await readFile(source, 'utf8')
-  const heading = content.match(/^# (.+?)(?: :badge\[[^\]]+\](?:\{[^}]+\})?)?$/m)?.[1]
+  const heading = content.match(/^# (.+)$/m)?.[1]
   assert.ok(heading, `${source}: missing page heading`)
   await checkTitle(output, `${heading} | ${siteTitle}`)
 }
