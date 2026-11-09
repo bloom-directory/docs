@@ -14,16 +14,28 @@ async function pages(dir) {
   }))).flat()
 }
 
-const sourcePages = await pages(sourceRoot)
-for (const source of sourcePages) {
-  const route = source.slice(sourceRoot.length + 1, -4)
-  const output = route === 'index' ? join(outputRoot, 'index.html') : join(outputRoot, route, 'index.html')
+async function checkTitle(output, expected) {
   const html = await readFile(output, 'utf8')
   const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i)?.[1]
   assert.ok(head, `${output}: missing head`)
   const titles = [...head.matchAll(/<title\b[^>]*>([\s\S]*?)<\/title>/gi)].map((match) => match[1])
   assert.equal(titles.length, 1, `${output}: expected exactly one title`)
-  if (route === 'index') assert.equal(titles[0], siteTitle, output)
-  else assert.ok(titles[0].endsWith(` | ${siteTitle}`) && titles[0].length > siteTitle.length + 3, `${output}: ${titles[0]}`)
+  const escaped = expected.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  assert.equal(titles[0], escaped, output)
 }
-console.log(`Verified browser titles in ${sourcePages.length} built documentation pages.`)
+
+const sourcePages = await pages(sourceRoot)
+for (const source of sourcePages) {
+  const route = source.slice(sourceRoot.length + 1, -4)
+  const output = route === 'index' ? join(outputRoot, 'index.html') : join(outputRoot, route, 'index.html')
+  if (route === 'index') {
+    await checkTitle(output, siteTitle)
+    continue
+  }
+  const content = await readFile(source, 'utf8')
+  const heading = content.match(/^# (.+?)(?: :badge\[[^\]]+\](?:\{[^}]+\})?)?$/m)?.[1]
+  assert.ok(heading, `${source}: missing page heading`)
+  await checkTitle(output, `${heading} | ${siteTitle}`)
+}
+await checkTitle(join(outputRoot, '404.html'), `Page not found | ${siteTitle}`)
+console.log(`Verified exact browser titles in ${sourcePages.length} built documentation pages and 404.`)
